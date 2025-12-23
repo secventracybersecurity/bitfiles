@@ -27,6 +27,7 @@ import JSZip from "jszip";
 import { createClient } from "@/lib/supabase-browser";
 import { useRouter } from "next/navigation";
 import { recoverAndReassemble, recoverThumbnail } from "@/lib/storage";
+import { useAppState } from "@/lib/hooks/use-app-state";
 
 interface FileBrowserProps {
   user: any;
