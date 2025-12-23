@@ -18,6 +18,7 @@ import {
   BarChart3,
   Wallet,
   Shield,
+  Lock,
   Mail,
   ArrowRight,
   Loader2,
