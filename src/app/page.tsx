@@ -57,16 +57,18 @@ const AuthView = () => {
         if (error) throw error;
         
         // Log event
-        await supabase.from('audit_logs').insert({
-          user_id: data.user?.id,
-          event_type: 'signup_attempt',
-          metadata: { email }
-        });
+        if (data.user) {
+          await supabase.from('audit_logs').insert({
+            user_id: data.user.id,
+            event_type: 'signup_attempt',
+            metadata: { email, role: 'USER' }
+          });
+        }
 
         if (data?.session) {
-          // Success
+          // Success handled by state change listener
         } else {
-          alert("Success! Please check your email for the confirmation link to complete your registration.");
+          alert("A verification link has been sent to your email. Please confirm to activate your account.");
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -76,7 +78,7 @@ const AuthView = () => {
         await supabase.from('audit_logs').insert({
           user_id: data.user?.id,
           event_type: 'login_success',
-          metadata: { method: 'password' }
+          metadata: { method: 'password', role: data.user?.app_metadata?.role || 'pending' }
         });
       }
     } catch (error: any) {
