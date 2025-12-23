@@ -371,6 +371,54 @@ const DashboardView = ({ onBack, profile }: { onBack: () => void, profile: any }
   );
 };
 
+// --- Bulk Action Bar ---
+const BulkActionBar = ({ selectedCount, onClear, onDownload, onDelete, isDeleting, isDownloading }: any) => (
+  <AnimatePresence>
+    {selectedCount > 0 && (
+      <motion.div 
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-xl"
+      >
+        <div className="bg-[#0F172A] text-white p-4 md:p-6 rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.3)] flex items-center justify-between border border-white/10">
+          <div className="flex items-center gap-4 ml-2">
+            <button 
+              onClick={onClear}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex flex-col">
+              <span className="font-black text-lg leading-none">{selectedCount}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Selected</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={onDownload}
+              disabled={isDownloading || isDeleting}
+              className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-sm transition-all disabled:opacity-50"
+            >
+              {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+              <span className="hidden md:inline">Download</span>
+            </button>
+            <button 
+              onClick={onDelete}
+              disabled={isDownloading || isDeleting}
+              className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-red-500/20 disabled:opacity-50"
+            >
+              {isDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+              <span className="hidden md:inline">Delete</span>
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
 export default function NativeApp() {
   const [activeTab, setActiveTab] = React.useState("files");
   const [view, setView] = React.useState<"app" | "dashboard">("app");
@@ -381,6 +429,9 @@ export default function NativeApp() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortBy, setSortBy] = React.useState<"date" | "name" | "size">("date");
   const [filterCategory, setFilterCategory] = React.useState<string>("all");
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [previewFile, setPreviewFile] = React.useState<any | null>(null);
+  const [bulkLoading, setBulkLoading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -462,7 +513,6 @@ export default function NativeApp() {
 
       // Refresh data
       await fetchUserData(user.id);
-      alert("File distributed securely across STORZY network!");
     } catch (error: any) {
       alert("Encryption/Distribution failed: " + error.message);
     } finally {
@@ -472,15 +522,10 @@ export default function NativeApp() {
 
   const handleDownload = async (file: any) => {
     try {
-      // Step 7: Recovery & Reassembly with Progress
       const blob = await recoverAndReassemble(
         file.id, 
-        { 
-          key: 'c29tZV9rZXk=', // Placeholder: In production, this would be retrieved from a secure vault or local storage
-          iv: 'c29tZV9pdg==' // Placeholder
-        },
+        { key: 'c29tZV9rZXk=', iv: 'c29tZV9pdg==' },
         (state, percent) => {
-          // You could show a toast or a progress bar here
           console.log(`Download progress: ${state} (${percent}%)`);
         }
       );
@@ -493,6 +538,46 @@ export default function NativeApp() {
       window.URL.revokeObjectURL(url);
     } catch (error: any) {
       alert("Recovery failed: " + error.message);
+    }
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDownload = async () => {
+    setBulkLoading(true);
+    try {
+      for (const id of selectedIds) {
+        const file = files.find(f => f.id === id);
+        if (file) await handleDownload(file);
+      }
+      setSelectedIds([]);
+    } catch (error: any) {
+      alert("Bulk download failed: " + error.message);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} files?`)) return;
+    setBulkLoading(true);
+    try {
+      const { error } = await supabase
+        .from('files')
+        .update({ is_deleted: true })
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      await fetchUserData(user.id);
+      setSelectedIds([]);
+    } catch (error: any) {
+      alert("Bulk delete failed: " + error.message);
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -517,11 +602,11 @@ export default function NativeApp() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-8 pb-12"
+            className="space-y-8 pb-32"
           >
             {/* Search Bar */}
             <div className="relative">
-              <Search className="absolute left(5) top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
               <input 
                 type="text" 
                 placeholder="Search files, folders..."
@@ -550,9 +635,19 @@ export default function NativeApp() {
             {/* Files List Header */}
             <div className="space-y-6 pt-4">
               <div className="flex items-center justify-between px-2">
-                <h2 className="text-2xl font-black text-[#0F172A] tracking-tight">
-                  {filterCategory === "all" ? "Recent Files" : `${filterCategory.charAt(0).toUpperCase() + filterCategory.slice(1)}s`}
-                </h2>
+                <div className="flex items-center gap-4">
+                  <h2 className="text-2xl font-black text-[#0F172A] tracking-tight">
+                    {filterCategory === "all" ? "Recent Files" : `${filterCategory.charAt(0).toUpperCase() + filterCategory.slice(1)}s`}
+                  </h2>
+                  {selectedIds.length > 0 && (
+                    <button 
+                      onClick={() => setSelectedIds([])}
+                      className="text-xs font-bold text-blue-600 hover:underline"
+                    >
+                      Deselect All
+                    </button>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <select 
                     value={sortBy}
@@ -570,7 +665,15 @@ export default function NativeApp() {
               <div className="bg-white rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)] p-6 divide-y divide-black/[0.03] min-h-[200px]">
                 {filteredFiles.length > 0 ? (
                   filteredFiles.map(file => (
-                    <FileRow key={file.id} file={file} onDownload={handleDownload} />
+                    <FileRow 
+                      key={file.id} 
+                      file={file} 
+                      onDownload={handleDownload} 
+                      onPreview={setPreviewFile}
+                      isSelected={selectedIds.includes(file.id)}
+                      onSelect={toggleSelection}
+                      selectionMode={selectedIds.length > 0}
+                    />
                   ))
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
@@ -590,16 +693,37 @@ export default function NativeApp() {
               onChange={handleUpload} 
               className="hidden" 
             />
-            <motion.button 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              whileTap={{ scale: 0.9 }}
-              className="fixed bottom-28 right-6 md:bottom-12 md:right-12 w-16 h-16 bg-blue-600 text-white rounded-full shadow-[0_16px_32px_rgba(59,130,246,0.3)] flex items-center justify-center z-40"
-            >
-              {uploading ? <Loader2 className="animate-spin" size={32} strokeWidth={3} /> : <Plus size={32} strokeWidth={3} />}
-            </motion.button>
+            {selectedIds.length === 0 && (
+              <motion.button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                whileTap={{ scale: 0.9 }}
+                className="fixed bottom-28 right-6 md:bottom-12 md:right-12 w-16 h-16 bg-blue-600 text-white rounded-full shadow-[0_16px_32px_rgba(59,130,246,0.3)] flex items-center justify-center z-40"
+              >
+                {uploading ? <Loader2 className="animate-spin" size={32} strokeWidth={3} /> : <Plus size={32} strokeWidth={3} />}
+              </motion.button>
+            )}
+
+            <BulkActionBar 
+              selectedCount={selectedIds.length}
+              onClear={() => setSelectedIds([])}
+              onDownload={handleBulkDownload}
+              onDelete={handleBulkDelete}
+              isDownloading={bulkLoading}
+              isDeleting={bulkLoading}
+            />
+
+            <AnimatePresence>
+              {previewFile && (
+                <PreviewModal 
+                  file={previewFile} 
+                  onClose={() => setPreviewFile(null)} 
+                  onDownload={handleDownload}
+                />
+              )}
+            </AnimatePresence>
           </motion.div>
         ) : (
           <motion.div 
