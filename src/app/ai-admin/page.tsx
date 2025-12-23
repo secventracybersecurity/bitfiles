@@ -52,9 +52,19 @@ export default function AIAdminPage() {
   const supabase = createClient();
   const router = useRouter();
 
-  React.useEffect(() => {
-    const fetchData = async () => {
-      // Simulate AI Brain analysis
+    React.useEffect(() => {
+      const fetchData = async () => {
+        // Log access
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('audit_logs').insert({
+            user_id: user.id,
+            event_type: 'admin_view_ai_dashboard',
+            metadata: { path: '/ai-admin' }
+          });
+        }
+
+        // Simulate AI Brain analysis
       await new Promise(r => setTimeout(r, 1500));
       setStats({
         nodes: { total: 1284, active: 1142, offline: 142 },
