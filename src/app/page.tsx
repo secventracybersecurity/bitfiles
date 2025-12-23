@@ -31,9 +31,7 @@ import {
   FileArchive
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
-import { encryptFile, recoverAndReassemble } from "@/lib/storage";
-import { getOptimalNodes, distributeShards } from "@/lib/distribution";
+import { createClient } from "@/lib/supabase-browser";
 
 // --- Auth View ---
 const AuthView = () => {
@@ -41,6 +39,7 @@ const AuthView = () => {
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [isSignUp, setIsSignUp] = React.useState(false);
+  const supabase = createClient();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,23 +56,41 @@ const AuthView = () => {
         });
         if (error) throw error;
         
-        // If session is present, they are automatically logged in (common in some configs)
-        // If not, we show a success state
+        // Log event
+        await supabase.from('audit_logs').insert({
+          user_id: data.user?.id,
+          event_type: 'signup_attempt',
+          metadata: { email }
+        });
+
         if (data?.session) {
-          // Auth listener will handle the state update
+          // Success
         } else {
           alert("Success! Please check your email for the confirmation link to complete your registration.");
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+
+        // Log success
+        await supabase.from('audit_logs').insert({
+          user_id: data.user?.id,
+          event_type: 'login_success',
+          metadata: { method: 'password' }
+        });
       }
     } catch (error: any) {
+      // Log failure
+      await supabase.from('audit_logs').insert({
+        event_type: 'login_failure',
+        metadata: { email, error: error.message }
+      });
       alert(error.message);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
