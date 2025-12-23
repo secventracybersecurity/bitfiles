@@ -17,8 +17,8 @@ import {
   HardDrive,
   BarChart3,
   Wallet,
-  Shield,
-  Lock,
+  Shield as ShieldIcon,
+  Lock as LockIcon,
   Mail,
   ArrowRight,
   Loader2,
@@ -31,8 +31,7 @@ import {
   FileCode,
   FileArchive,
   LayoutGrid,
-  List,
-  Shield as ShieldIcon
+  List
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase-browser";
@@ -131,7 +130,7 @@ const AuthView = () => {
               />
             </div>
                 <div className="relative">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
+                  <LockIcon className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
                 <input 
                   type="password" 
                   placeholder="Password"
@@ -535,7 +534,7 @@ const EarnView = ({ profile, user }: { profile: any, user: any }) => {
           <div className="pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                <Shield size={20} className="text-blue-400" />
+                <ShieldIcon size={20} className="text-blue-400" />
               </div>
               <div>
                 <h4 className="font-bold text-sm tracking-tight">Sybil Resistance</h4>
