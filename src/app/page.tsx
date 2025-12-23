@@ -658,9 +658,130 @@ const BulkActionBar = ({ selectedCount, onClear, onDownload, onDelete, isDeletin
   </AnimatePresence>
 );
 
+// --- File Card (Grid View) ---
+const FileCard = ({ file, onDownload, onPreview, isSelected, onSelect, selectionMode }: any) => {
+  const [loading, setLoading] = React.useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = React.useState<string | null>(null);
+
+  const isImage = file.mime_type?.startsWith('image/');
+  const isVideo = file.mime_type?.startsWith('video/');
+  const isPdf = file.mime_type === 'application/pdf';
+  
+  const extension = file.name.split('.').pop()?.toUpperCase() || 'FILE';
+
+  React.useEffect(() => {
+    let url: string | null = null;
+    if (isImage) {
+      const loadThumbnail = async () => {
+        try {
+          // Attempt a fast reassembly for thumbnail
+          const blob = await recoverAndReassemble(
+            file.id, 
+            { key: 'c29tZV9rZXk=', iv: 'c29tZV9pdg==' }
+          );
+          url = URL.createObjectURL(blob);
+          setThumbnailUrl(url);
+        } catch (e) {
+          console.error("Thumbnail failed", e);
+        }
+      };
+      loadThumbnail();
+    }
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [file.id, isImage]);
+
+  const handleAction = (e: React.MouseEvent, action: string) => {
+    e.stopPropagation();
+    if (action === 'download') onDownload(file);
+    if (action === 'preview') onPreview(file);
+    if (action === 'select') onSelect(file.id);
+  };
+
+  return (
+    <motion.div 
+      layout
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ y: -5 }}
+      onClick={() => selectionMode ? onSelect(file.id) : onPreview(file)}
+      className={cn(
+        "group relative bg-white rounded-[2rem] border border-black/[0.02] shadow-[0_8px_30px_rgba(0,0,0,0.02)] overflow-hidden cursor-pointer transition-all",
+        isSelected && "ring-2 ring-blue-500 shadow-blue-500/10 bg-blue-50/30"
+      )}
+    >
+      {/* Selection Overlay */}
+      <div 
+        onClick={(e) => handleAction(e, 'select')}
+        className={cn(
+          "absolute top-4 left-4 z-20 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all",
+          isSelected ? "bg-blue-600 border-blue-600 scale-110" : "bg-white/80 backdrop-blur border-black/10 opacity-0 group-hover:opacity-100",
+          selectionMode && "opacity-100"
+        )}
+      >
+        {isSelected && <Check size={14} className="text-white" strokeWidth={4} />}
+      </div>
+
+      {/* Quick Actions Overlay (Desktop) */}
+      <div className="absolute top-4 right-4 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+        <button 
+          onClick={(e) => handleAction(e, 'download')}
+          className="p-2 bg-white/90 backdrop-blur rounded-xl shadow-lg hover:bg-white text-slate-600 transition-all active:scale-95"
+        >
+          <Download size={16} />
+        </button>
+        <button 
+          onClick={(e) => handleAction(e, 'preview')}
+          className="p-2 bg-white/90 backdrop-blur rounded-xl shadow-lg hover:bg-white text-slate-600 transition-all active:scale-95"
+        >
+          <Maximize2 size={16} />
+        </button>
+      </div>
+
+      {/* Media Preview */}
+      <div className="aspect-[4/3] bg-slate-50 relative overflow-hidden flex items-center justify-center">
+        {isImage && thumbnailUrl ? (
+          <img src={thumbnailUrl} alt={file.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className={cn(
+            "w-16 h-16 rounded-3xl flex items-center justify-center shadow-inner",
+            isImage ? "bg-blue-100 text-blue-500" :
+            isVideo ? "bg-purple-100 text-purple-500" :
+            isPdf ? "bg-orange-100 text-orange-500" :
+            "bg-slate-100 text-slate-400"
+          )}>
+            {isImage ? <ImageIcon size={32} /> : 
+             isVideo ? <Video size={32} /> :
+             isPdf ? <FileText size={32} /> :
+             <FileCode size={32} />}
+          </div>
+        )}
+        
+        {/* Type Badge */}
+        <div className="absolute bottom-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-lg text-[8px] font-black text-white tracking-widest uppercase">
+          {extension}
+        </div>
+      </div>
+
+      {/* File Info */}
+      <div className="p-4 space-y-1">
+        <h4 className="font-bold text-slate-900 truncate text-sm leading-tight">{file.name}</h4>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            {(file.size / (1024 * 1024)).toFixed(1)} MB
+          </p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            {new Date(file.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 export default function NativeApp() {
   const [activeTab, setActiveTab] = React.useState("files");
   const [view, setView] = React.useState<"app" | "dashboard">("app");
+  const [layout, setLayout] = React.useState<"list" | "grid">("grid");
   const [user, setUser] = React.useState<any>(null);
   const [profile, setProfile] = React.useState<any>(null);
   const [files, setFiles] = React.useState<any[]>([]);
