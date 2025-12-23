@@ -1199,7 +1199,7 @@ export default function NativeApp() {
             />
             {selectedIds.length === 0 && (
               <motion.button 
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => router.push('/prepare')}
                 disabled={uploading}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
