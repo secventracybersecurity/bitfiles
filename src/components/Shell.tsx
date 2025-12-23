@@ -80,10 +80,16 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick, use
                     <LayoutDashboard size={18} className="text-[#64748B]" />
                     <span className="text-sm font-semibold">Dashboard</span>
                   </button>
-                  <button className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-black/[0.03] transition-colors">
-                    <Settings size={18} className="text-[#64748B]" />
-                    <span className="text-sm font-semibold">Account</span>
-                  </button>
+                    <button 
+                      onClick={() => {
+                        onDashboardClick?.();
+                        setProfileOpen(false);
+                      }}
+                      className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-black/[0.03] transition-colors"
+                    >
+                      <Settings size={18} className="text-[#64748B]" />
+                      <span className="text-sm font-semibold">Account</span>
+                    </button>
                   <div className="h-px bg-black/[0.05] my-1 mx-2" />
                   <button onClick={handleLogout} className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-red-50 text-red-600 transition-colors">
                     <LogOut size={18} />
