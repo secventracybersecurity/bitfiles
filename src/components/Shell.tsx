@@ -45,6 +45,9 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (!session) {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -80,11 +83,15 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
             onClick={() => setProfileOpen(!profileOpen)}
             className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border border-black/[0.05]"
           >
-            <User className="text-blue-600" size={20} />
+            {user ? (
+              <User className="text-blue-600" size={20} />
+            ) : (
+              <Lock className="text-[#64748B]" size={18} />
+            )}
           </button>
 
           <AnimatePresence>
-            {profileOpen && (
+            {profileOpen && user && (
               <>
                 <div 
                   className="fixed inset-0 z-[61]" 
@@ -119,75 +126,9 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
                     <span className="text-sm font-semibold">Logout</span>
                   </button>
                 </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </header>
-
-        {/* Sidebar Overlay */}
-        <AnimatePresence>
-          {sidebarOpen && (
-            <>
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setSidebarOpen(false)}
-                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[70]"
-              />
-              <motion.aside
-                initial={{ x: "-100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "-100%" }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="fixed top-0 left-0 bottom-0 w-[280px] bg-white z-[71] shadow-2xl p-6 flex flex-col"
-              >
-                <div className="flex items-center justify-between mb-8">
-                  <span className="font-black text-xl tracking-tighter">STORZY</span>
-                  <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-black/[0.03] rounded-full">
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B] mb-4">Library</h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center text-sm font-bold">
-                        <span className="text-[#64748B]">Photos</span>
-                        <span>{profile?.photo_count ?? 0}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm font-bold">
-                        <span className="text-[#64748B]">Documents</span>
-                        <span>{profile?.doc_count ?? 0}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm font-bold">
-                        <span className="text-[#64748B]">Videos</span>
-                        <span>{profile?.video_count ?? 0}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-6 border-t border-black/[0.05]">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B] mb-4">Storage</h3>
-                    <div className="space-y-3">
-                      <div className="h-2 w-full bg-[#F1F5F9] rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-blue-500 rounded-full transition-all duration-500" 
-                          style={{ width: `${storagePercent}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-[11px] font-bold">
-                        <span className="text-[#64748B]">{storageUsedGB} GB of {storageLimitGB} GB used</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.aside>
-            </>
-          )}
-        </AnimatePresence>
-
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </header>
 
@@ -222,15 +163,15 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
                   <div className="space-y-4">
                     <div className="flex justify-between items-center text-sm font-bold">
                       <span className="text-[#64748B]">Photos</span>
-                      <span>1,284</span>
+                      <span>{profile?.photo_count ?? 0}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm font-bold">
                       <span className="text-[#64748B]">Documents</span>
-                      <span>432</span>
+                      <span>{profile?.doc_count ?? 0}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm font-bold">
                       <span className="text-[#64748B]">Videos</span>
-                      <span>86</span>
+                      <span>{profile?.video_count ?? 0}</span>
                     </div>
                   </div>
                 </div>
@@ -239,10 +180,13 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B] mb-4">Storage</h3>
                   <div className="space-y-3">
                     <div className="h-2 w-full bg-[#F1F5F9] rounded-full overflow-hidden">
-                      <div className="h-full w-[65%] bg-blue-500 rounded-full" />
+                      <div 
+                        className="h-full bg-blue-500 rounded-full transition-all duration-500" 
+                        style={{ width: `${storagePercent}%` }}
+                      />
                     </div>
                     <div className="flex justify-between text-[11px] font-bold">
-                      <span className="text-[#64748B]">12.4 GB of 20 GB used</span>
+                      <span className="text-[#64748B]">{storageUsedGB} GB of {storageLimitGB} GB used</span>
                     </div>
                   </div>
                 </div>
@@ -290,3 +234,6 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
     </div>
   );
 }
+
+// Fixed missing import in Shell.tsx
+import { Lock } from "lucide-react";
