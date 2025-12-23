@@ -16,31 +16,85 @@ export async function generateKey(): Promise<CryptoKey> {
   );
 }
 
-export async function encryptFile(file: File): Promise<{ encryptedChunks: Blob[]; encryptionDetails: EncryptionDetails }> {
-  const key = await generateKey();
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+export async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+  return await crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['encrypt', 'decrypt']
+  );
+}
+
+export async function encryptFile(file: File, password?: string): Promise<{ encryptedChunks: Blob[]; encryptionDetails: EncryptionDetails; chunkHashes: string[] }> {
+  // Generate random file key
+  const fileKey = await crypto.subtle.generateKey(
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['encrypt', 'decrypt']
+  );
   
+  const iv = crypto.getRandomValues(new Uint8Array(12));
   const fileBuffer = await file.arrayBuffer();
+  
   const encryptedBuffer = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv: iv },
-    key,
+    fileKey,
     fileBuffer
   );
 
-  const exportedKey = await crypto.subtle.exportKey('raw', key);
-  const keyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
+  // Derive master key if password provided (Step 1.4)
+  let finalKeyBase64: string;
+  if (password) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const masterKey = await deriveKey(password, salt);
+    const exportedFileKey = await crypto.subtle.exportKey('raw', fileKey);
+    const encryptedFileKey = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: new Uint8Array(12) }, // Fixed IV for key wrapping for demo
+      masterKey,
+      exportedFileKey
+    );
+    finalKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(encryptedFileKey)));
+  } else {
+    const exportedKey = await crypto.subtle.exportKey('raw', fileKey);
+    finalKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
+  }
+
   const ivBase64 = btoa(String.fromCharCode(...iv));
 
   const encryptedChunks: Blob[] = [];
+  const chunkHashes: string[] = [];
   const totalSize = encryptedBuffer.byteLength;
+  
   for (let i = 0; i < totalSize; i += CHUNK_SIZE) {
-    const chunk = encryptedBuffer.slice(i, Math.min(i + CHUNK_SIZE, totalSize));
-    encryptedChunks.push(new Blob([chunk]));
+    const chunkData = encryptedBuffer.slice(i, Math.min(i + CHUNK_SIZE, totalSize));
+    const chunkBlob = new Blob([chunkData]);
+    encryptedChunks.push(chunkBlob);
+    
+    // Generate chunk hash (Step 2.3)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', chunkData);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    chunkHashes.push(hashHex);
   }
 
   return {
     encryptedChunks,
-    encryptionDetails: { key: keyBase64, iv: ivBase64 },
+    chunkHashes,
+    encryptionDetails: { key: finalKeyBase64, iv: ivBase64 },
   };
 }
 
