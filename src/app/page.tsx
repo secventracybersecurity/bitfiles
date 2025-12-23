@@ -750,12 +750,32 @@ export default function NativeApp() {
   }, [files, searchQuery, sortBy, filterCategory]);
 
   const handleToggleStar = async (id: string, isStarred: boolean) => {
+    // Optimistic UI update for files
     setFiles(prev => prev.map(f => f.id === id ? { ...f, is_starred: isStarred } : f));
+    
+    // Optimistic UI update for profile count
+    setProfile((prev: any) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        starred_count: Math.max(0, (prev.starred_count || 0) + (isStarred ? 1 : -1))
+      };
+    });
+
     try {
       const { error } = await supabase.from('files').update({ is_starred: isStarred }).eq('id', id);
       if (error) throw error;
     } catch (error: any) {
+      // Revert on error
       setFiles(prev => prev.map(f => f.id === id ? { ...f, is_starred: !isStarred } : f));
+      setProfile((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          starred_count: Math.max(0, (prev.starred_count || 0) + (isStarred ? -1 : 1))
+        };
+      });
+      alert("Failed to update star state: " + error.message);
     }
   };
 
