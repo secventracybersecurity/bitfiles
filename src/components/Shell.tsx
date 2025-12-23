@@ -168,11 +168,15 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
                       <span className="text-[#64748B]">Documents</span>
                       <span>{profile?.doc_count ?? 0}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm font-bold">
-                      <span className="text-[#64748B]">Videos</span>
-                      <span>{profile?.video_count ?? 0}</span>
+                      <div className="flex justify-between items-center text-sm font-bold">
+                        <span className="text-[#64748B]">Videos</span>
+                        <span>{profile?.video_count ?? 0}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm font-bold">
+                        <span className="text-[#64748B]">Starred</span>
+                        <span className="text-amber-500">{profile?.starred_count ?? 0}</span>
+                      </div>
                     </div>
-                  </div>
                 </div>
 
                 <div className="pt-6 border-t border-black/[0.05]">
