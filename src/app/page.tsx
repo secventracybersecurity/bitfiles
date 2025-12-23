@@ -235,6 +235,9 @@ export default function NativeApp() {
   const [profile, setProfile] = React.useState<any>(null);
   const [files, setFiles] = React.useState<any[]>([]);
   const [uploading, setUploading] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [sortBy, setSortBy] = React.useState<"date" | "name" | "size">("date");
+  const [filterCategory, setFilterCategory] = React.useState<string>("all");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -263,10 +266,27 @@ export default function NativeApp() {
       .from('files')
       .select('*')
       .eq('owner_id', userId)
-      .eq('is_deleted', false)
-      .order('created_at', { ascending: false });
+      .eq('is_deleted', false);
     setFiles(fileData || []);
   };
+
+  const filteredFiles = React.useMemo(() => {
+    return files
+      .filter(file => {
+        const matchesSearch = file.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = filterCategory === "all" || 
+          (filterCategory === "photo" && file.mime_type?.startsWith('image/')) ||
+          (filterCategory === "video" && file.mime_type?.startsWith('video/')) ||
+          (filterCategory === "doc" && (file.mime_type?.startsWith('application/') || file.mime_type?.startsWith('text/')));
+        return matchesSearch && matchesCategory;
+      })
+      .sort((a, b) => {
+        if (sortBy === "date") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (sortBy === "name") return a.name.localeCompare(b.name);
+        if (sortBy === "size") return b.size - a.size;
+        return 0;
+      });
+  }, [files, searchQuery, sortBy, filterCategory]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
