@@ -4,7 +4,7 @@ import * as React from "react";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase-browser";
 import { useAppState } from "@/lib/hooks/use-app-state";
-import { deriveMasterKey } from "@/lib/storage";
+import { deriveMasterKey } from "@/lib/crypto";
 
 export const Auth = () => {
   const { setVaultKey } = useAppState() as any;
