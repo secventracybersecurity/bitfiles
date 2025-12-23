@@ -10,7 +10,6 @@ import {
   Loader2, 
   ArrowRight,
   FileCode,
-  Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { encryptFile } from "@/lib/storage";
