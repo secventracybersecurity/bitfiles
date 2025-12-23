@@ -22,7 +22,7 @@ export function useAppState() {
   const [loading, setLoading] = React.useState(true);
   const supabase = createClient();
 
-  const fetchProfile = React.useCallback(async (userId: string) => {
+  const fetchProfile = React.useCallback(async (userId: string, retryCount = 0) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -30,7 +30,42 @@ export function useAppState() {
       .single();
     
     if (error) {
-      console.error("Error fetching profile:", error);
+      // PGRST116 means no rows found
+      if (error.code === 'PGRST116' && retryCount < 3) {
+        console.warn(`Profile not found for ${userId}, retrying... (${retryCount + 1})`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return fetchProfile(userId, retryCount + 1);
+      }
+      
+      // If still not found after retries, try to create it as a safety fallback
+      if (error.code === 'PGRST116') {
+        console.log("Creating missing profile for user:", userId);
+        const { data: newData, error: createError } = await supabase
+          .from('profiles')
+          .insert({ 
+            id: userId, 
+            username: userId.split('-')[0], // Fallback username
+            storage_limit: 10737418240, 
+            storage_used: 0, 
+            role: 'USER' 
+          })
+          .select()
+          .single();
+        
+        if (createError) {
+          console.error("Critical: Failed to create profile:", createError);
+          return;
+        }
+        setProfile(newData);
+        return;
+      }
+
+      console.error("Error fetching profile:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       return;
     }
     setProfile(data);
