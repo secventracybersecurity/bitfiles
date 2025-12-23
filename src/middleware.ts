@@ -52,10 +52,11 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/', request.url))
       }
 
-      if (url.pathname.startsWith('/ai-admin') && !['AI_ADMIN', 'ROOT_ADMIN'].includes(profile?.role || '')) {
+      // Spec: ai_admin_dashboard visibility: ROOT_ADMIN only
+      if (url.pathname.startsWith('/ai-admin') && profile?.role !== 'ROOT_ADMIN') {
         return NextResponse.redirect(new URL('/', request.url))
       }
-  }
+    }
 
   return response
 }
