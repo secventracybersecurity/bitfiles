@@ -372,7 +372,7 @@ const DashboardView = ({ onBack, profile }: { onBack: () => void, profile: any }
 };
 
 // --- Bulk Action Bar ---
-const BulkActionBar = ({ selectedCount, onClear, onDownload, onDelete, isDeleting, isDownloading }: any) => (
+const BulkActionBar = ({ selectedCount, onClear, onDownload, onDelete, isDeleting, isDownloading, isConfirmingDelete }: any) => (
   <AnimatePresence>
     {selectedCount > 0 && (
       <motion.div 
@@ -396,21 +396,26 @@ const BulkActionBar = ({ selectedCount, onClear, onDownload, onDelete, isDeletin
           </div>
 
           <div className="flex items-center gap-2">
-            <button 
-              onClick={onDownload}
-              disabled={isDownloading || isDeleting}
-              className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-sm transition-all disabled:opacity-50"
-            >
-              {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
-              <span className="hidden md:inline">Download</span>
-            </button>
+            {!isConfirmingDelete && (
+              <button 
+                onClick={onDownload}
+                disabled={isDownloading || isDeleting}
+                className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-sm transition-all disabled:opacity-50"
+              >
+                {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+                <span className="hidden md:inline">Download</span>
+              </button>
+            )}
             <button 
               onClick={onDelete}
               disabled={isDownloading || isDeleting}
-              className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-red-500/20 disabled:opacity-50"
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-lg disabled:opacity-50",
+                isConfirmingDelete ? "bg-red-600 hover:bg-red-700 shadow-red-600/20" : "bg-red-500 hover:bg-red-600 shadow-red-500/20"
+              )}
             >
               {isDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
-              <span className="hidden md:inline">Delete</span>
+              <span>{isConfirmingDelete ? "Confirm Delete?" : <span className="hidden md:inline">Delete</span>}</span>
             </button>
           </div>
         </div>
