@@ -928,7 +928,23 @@ export default function NativeApp() {
 
       if (fileError) throw fileError;
 
-      // 3. Shard distribution (Step 3 & 4)
+      // 3. New STEP-3 Chunking & Manifest Generation
+      const encryptedBlob = new Blob(encryptedChunks);
+      const chunkFormData = new FormData();
+      chunkFormData.append('file', encryptedBlob);
+      chunkFormData.append('filename', file.name);
+      chunkFormData.append('mimeType', file.type);
+
+      const chunkResponse = await fetch('/api/prepare', {
+        method: 'POST',
+        body: chunkFormData
+      });
+      
+      if (!chunkResponse.ok) throw new Error('Backend chunking failed');
+      const manifest = await chunkResponse.json();
+      console.log("[STORZY-STEP3] Manifest Generated:", manifest);
+
+      // 4. Shard distribution (Step 3 & 4)
       const nodes = await getOptimalNodes(3);
       await distributeShards(fileRecord.id, encryptedChunks, nodes);
 
