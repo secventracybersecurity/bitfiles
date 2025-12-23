@@ -49,5 +49,55 @@ export const DashboardView = ({ profile, onBack }: DashboardViewProps) => (
         </div>
       </div>
     </div>
+
+    {/* Node Control Center */}
+    <div className="bg-white p-8 rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)] space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-black text-[#0F172A]">Node Control Center</h3>
+          <p className="text-sm text-[#64748B]">Simulate decentralized node network availability</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Network Active</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {nodes.map((node: any) => (
+          <div 
+            key={node.id} 
+            className={`p-4 rounded-3xl border transition-all duration-300 ${
+              node.status === 'online' 
+                ? 'bg-emerald-50/50 border-emerald-100 shadow-[0_4px_20px_rgba(16,185,129,0.05)]' 
+                : 'bg-slate-50 border-slate-200 grayscale opacity-60'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className={`text-[10px] font-black uppercase tracking-tighter ${
+                node.status === 'online' ? 'text-emerald-600' : 'text-slate-500'
+              }`}>
+                {node.name}
+              </span>
+              <div className={`w-1.5 h-1.5 rounded-full ${
+                node.status === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'
+              }`} />
+            </div>
+            
+            <button
+              onClick={() => toggleNode(node.id, node.status)}
+              disabled={toggling === node.id}
+              className={`w-full py-2 px-4 rounded-xl text-xs font-bold transition-all ${
+                node.status === 'online'
+                  ? 'bg-white text-rose-500 border border-rose-100 hover:bg-rose-50'
+                  : 'bg-slate-900 text-white hover:bg-slate-800'
+              } disabled:opacity-50`}
+            >
+              {toggling === node.id ? '...' : node.status === 'online' ? 'Stop Node' : 'Start Node'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
   </div>
 );

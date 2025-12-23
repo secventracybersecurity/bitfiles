@@ -197,23 +197,26 @@ export async function recoverAndReassemble(
 
   onProgress?.("Retrieving distributed shards...", 30);
 
-  // 2. Parallel Shard Fetching with APEM Analysis
+  // 2. Parallel Shard Fetching with Retry Logic
   const fetchedShards: (Blob | null)[] = await Promise.all(
     shards.map(async (shard, idx) => {
-      try {
-        // Simulate network retrieval
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 100));
-        
-        // Node failure simulation based on its real reliability score
-        if (Math.random() > (shard.nodes.reliability_score || 0.95)) {
-          throw new Error('Node unreachable');
+      let attempts = 0;
+      const maxAttempts = 2;
+      
+      while (attempts < maxAttempts) {
+        try {
+          const res = await fetch(`/api/node/${shard.node_id}/download?fileId=${fileId}&chunkIndex=${shard.shard_index}`);
+          if (!res.ok) throw new Error(`Node ${shard.node_id} returned ${res.status}`);
+          
+          return await res.blob();
+        } catch (err) {
+          attempts++;
+          console.warn(`Retry ${attempts}/${maxAttempts} for shard ${idx} on node ${shard.node_id}`);
+          if (attempts >= maxAttempts) return null;
+          await new Promise(r => setTimeout(r, 500));
         }
-
-        // Return simulated encrypted data
-        return new Blob([new Uint8Array(Number(shard.size))]);
-      } catch (err) {
-        return null;
       }
+      return null;
     })
   );
 

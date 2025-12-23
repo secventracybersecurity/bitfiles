@@ -13,12 +13,13 @@ export async function POST(req: NextRequest) {
       .eq('status', 'online')
       .order('uptime_score', { ascending: false });
 
-    if (nodeError || !nodes || nodes.length === 0) {
-      return NextResponse.json({ error: 'No available nodes' }, { status: 500 });
+    if (nodeError) throw nodeError;
+    
+    if (!nodes || nodes.length === 0) {
+      return NextResponse.json({ error: 'No online nodes available for assignment' }, { status: 503 });
     }
 
     // 2. Simple Round-Robin / Load Balancing assignment
-    // For each chunk, assign a node
     const assignments = [];
     for (let i = 0; i < totalChunks; i++) {
       const node = nodes[i % nodes.length];
