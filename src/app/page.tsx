@@ -720,11 +720,12 @@ export default function NativeApp() {
 
             <BulkActionBar 
               selectedCount={selectedIds.length}
-              onClear={() => setSelectedIds([])}
+              onClear={() => { setSelectedIds([]); setShowDeleteConfirm(false); }}
               onDownload={handleBulkDownload}
               onDelete={handleBulkDelete}
               isDownloading={bulkLoading}
               isDeleting={bulkLoading}
+              isConfirmingDelete={showDeleteConfirm}
             />
 
             <AnimatePresence>
