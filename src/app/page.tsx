@@ -372,42 +372,55 @@ export default function NativeApp() {
           >
             {/* Search Bar */}
             <div className="relative">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
+              <Search className="absolute left(5) top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
               <input 
                 type="text" 
                 placeholder="Search files, folders..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white border border-black/[0.03] shadow-[0_4px_20px_rgba(0,0,0,0.02)] rounded-[2rem] py-5 pl-14 pr-6 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
 
             {/* Categories */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <CategoryCard icon={ImageIcon} label="Photos" count={profile?.photo_count || 0} color="bg-blue-50 text-blue-500" />
-              <CategoryCard icon={FileText} label="Docs" count={profile?.doc_count || 0} color="bg-orange-50 text-orange-500" />
-              <CategoryCard icon={Video} label="Videos" count={profile?.video_count || 0} color="bg-purple-50 text-purple-500" />
-              <CategoryCard icon={MoreHorizontal} label="Other" count="0" color="bg-emerald-50 text-emerald-500" />
+              <div onClick={() => setFilterCategory("photo")}>
+                <CategoryCard icon={ImageIcon} label="Photos" count={profile?.photo_count || 0} color={cn("bg-blue-50 text-blue-500", filterCategory === "photo" && "ring-2 ring-blue-500")} />
+              </div>
+              <div onClick={() => setFilterCategory("doc")}>
+                <CategoryCard icon={FileText} label="Docs" count={profile?.doc_count || 0} color={cn("bg-orange-50 text-orange-500", filterCategory === "doc" && "ring-2 ring-orange-500")} />
+              </div>
+              <div onClick={() => setFilterCategory("video")}>
+                <CategoryCard icon={Video} label="Videos" count={profile?.video_count || 0} color={cn("bg-purple-50 text-purple-500", filterCategory === "video" && "ring-2 ring-purple-500")} />
+              </div>
+              <div onClick={() => setFilterCategory("all")}>
+                <CategoryCard icon={MoreHorizontal} label="All Files" count={files.length} color={cn("bg-emerald-50 text-emerald-500", filterCategory === "all" && "ring-2 ring-emerald-500")} />
+              </div>
             </div>
 
             {/* Files List Header */}
             <div className="space-y-6 pt-4">
               <div className="flex items-center justify-between px-2">
-                <h2 className="text-2xl font-black text-[#0F172A] tracking-tight">Recent Files</h2>
+                <h2 className="text-2xl font-black text-[#0F172A] tracking-tight">
+                  {filterCategory === "all" ? "Recent Files" : `${filterCategory.charAt(0).toUpperCase() + filterCategory.slice(1)}s`}
+                </h2>
                 <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-2 px-3 py-2 bg-white border border-black/[0.03] rounded-xl text-xs font-bold text-[#64748B] hover:text-[#0F172A] transition-colors shadow-sm">
-                    <ArrowUpDown size={14} />
-                    <span>Sort</span>
-                  </button>
-                  <button className="flex items-center gap-2 px-3 py-2 bg-white border border-black/[0.03] rounded-xl text-xs font-bold text-[#64748B] hover:text-[#0F172A] transition-colors shadow-sm">
-                    <Filter size={14} />
-                    <span>Filter</span>
-                  </button>
+                  <select 
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="flex items-center gap-2 px-3 py-2 bg-white border border-black/[0.03] rounded-xl text-xs font-bold text-[#64748B] hover:text-[#0F172A] transition-colors shadow-sm focus:outline-none"
+                  >
+                    <option value="date">Newest</option>
+                    <option value="name">Name</option>
+                    <option value="size">Size</option>
+                  </select>
                 </div>
               </div>
 
               {/* Files List */}
               <div className="bg-white rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)] p-6 divide-y divide-black/[0.03] min-h-[200px]">
-                {files.length > 0 ? (
-                  files.map(file => (
+                {filteredFiles.length > 0 ? (
+                  filteredFiles.map(file => (
                     <FileRow key={file.id} file={file} onDownload={handleDownload} />
                   ))
                 ) : (
