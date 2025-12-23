@@ -12,32 +12,44 @@ export interface APEMManifest {
   creationTimestamp: number;
 }
 
-/**
- * Calculates the current recovery probability based on available nodes.
- * P = Σ (valid shard combinations) Π(p_i)
- */
-export function calculateRecoveryProbability(
-  availableShardIndices: number[],
-  manifest: APEMManifest
-): number {
-  const currentWeight = availableShardIndices.reduce(
-    (acc, idx) => acc + (manifest.shardWeights[idx] || 0), 
-    0
-  );
-
-  // In APEM, if current weight < minimum, recovery is mathematically impossible
-  if (currentWeight < manifest.minimumRequiredWeight) return 0;
-
-  // Probability calculation based on node uptime snapshots
-  // For simplicity in this primitive, we return the joint probability of the available set
-  let p = 1;
-  for (const idx of availableShardIndices) {
-    const nodeId = Object.keys(manifest.nodeReliabilitySnapshot)[idx % Object.keys(manifest.nodeReliabilitySnapshot).length];
-    p *= (manifest.nodeReliabilitySnapshot[nodeId] || 0.99);
+  /**
+   * Calculates the current recovery probability based on available nodes.
+   * P(recovery) = 1 - P(failure)
+   * In APEM, failure happens if the remaining weight is below the threshold.
+   */
+  export function calculateRecoveryProbability(
+    availableShardIndices: number[],
+    manifest: APEMManifest
+  ): number {
+    const totalWeight = Object.values(manifest.shardWeights).reduce((a, b) => a + b, 0);
+    const currentWeight = availableShardIndices.reduce(
+      (acc, idx) => acc + (manifest.shardWeights[idx] || 0), 
+      0
+    );
+  
+    if (currentWeight < manifest.minimumRequiredWeight) return 0;
+  
+    // Probabilistic Survival Equation: P = Π(p_i) for critical shards + combinatorics for parity
+    // For this primitive, we use a Poisson-Binomial approximation for reliability
+    const averageReliability = Object.values(manifest.nodeReliabilitySnapshot).reduce((a, b) => a + b, 0) / 
+      Object.keys(manifest.nodeReliabilitySnapshot).length;
+    
+    // Simple but elegant approximation of survival probability
+    const p = 1 - Math.pow(1 - averageReliability, (availableShardIndices.length - manifest.minimumRequiredWeight) + 1);
+    
+    return Math.min(0.999999, p);
   }
   
-  return p;
-}
+  /**
+   * Identifies if the system needs self-healing based on probability drift.
+   */
+  export function checkSelfHealing(manifest: APEMManifest, currentReliability: Record<string, number>): boolean {
+    const p = calculateRecoveryProbability(
+      Object.keys(manifest.shardWeights).map(Number),
+      { ...manifest, nodeReliabilitySnapshot: currentReliability }
+    );
+    return p < manifest.targetRecoveryProbability;
+  }
 
 export async function generateParity(shards: Blob[]): Promise<Blob> {
   const buffers = await Promise.all(shards.map(s => s.arrayBuffer()));
