@@ -81,10 +81,10 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
         
         <h1 className="font-black tracking-tighter text-xl">STORZY</h1>
         
-        <div className="relative">
+        <div className="relative z-[62]">
           <button 
             onClick={() => setProfileOpen(!profileOpen)}
-            className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border border-black/[0.05]"
+            className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border border-black/[0.05] relative z-[63]"
           >
             <User className={user ? "text-blue-600" : "text-[#64748B]"} size={20} />
           </button>
