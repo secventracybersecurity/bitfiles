@@ -211,9 +211,13 @@ export const FileBrowser = ({ user, profile }: FileBrowserProps) => {
     }
   };
 
-  const handleDownload = async (file: any) => {
+    const handleDownload = async (file: any) => {
+    if (!vaultKey) {
+      alert("Encryption key not found in session. Please log in again.");
+      return;
+    }
     try {
-      const blob = await recoverAndReassemble(file.id, { key: 'c29tZV9rZXk=', iv: 'c29tZV9pdg==' });
+      const blob = await recoverAndReassemble(file.id, vaultKey);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = file.name;
@@ -233,13 +237,17 @@ export const FileBrowser = ({ user, profile }: FileBrowserProps) => {
   };
 
   const handleBulkDownload = async () => {
+    if (!vaultKey) {
+      alert("Encryption key not found in session. Please log in again.");
+      return;
+    }
     setBulkLoading(true);
     try {
       const zip = new JSZip();
       for (const id of selectedIds) {
         const file = files.find(f => f.id === id);
         if (file) {
-          const blob = await recoverAndReassemble(file.id, { key: 'c29tZV9rZXk=', iv: 'c29tZV9pdg==' });
+          const blob = await recoverAndReassemble(file.id, vaultKey);
           zip.file(file.name, blob);
         }
       }
@@ -251,6 +259,7 @@ export const FileBrowser = ({ user, profile }: FileBrowserProps) => {
       setSelectedIds([]);
     } catch (error: any) { alert("Bulk download failed: " + error.message); } finally { setBulkLoading(false); }
   };
+
 
   return (
     <div className="space-y-8 pb-32">
