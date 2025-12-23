@@ -34,6 +34,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase-browser";
+import { 
+  encryptFile, 
+  recoverAndReassemble, 
+  recoverThumbnail 
+} from "@/lib/storage";
+import { getOptimalNodes, distributeShards } from "@/lib/distribution";
 
 // --- Auth View ---
 const AuthView = () => {
