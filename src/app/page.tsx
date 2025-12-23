@@ -39,13 +39,23 @@ const AuthView = () => {
     setLoading(true);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ 
+        const { data, error } = await supabase.auth.signUp({ 
           email, 
           password,
-          options: { data: { username: email.split('@')[0] } }
+          options: { 
+            data: { username: email.split('@')[0] },
+            emailRedirectTo: window.location.origin 
+          }
         });
         if (error) throw error;
-        alert("Check your email for the confirmation link!");
+        
+        // If session is present, they are automatically logged in (common in some configs)
+        // If not, we show a success state
+        if (data?.session) {
+          // Auth listener will handle the state update
+        } else {
+          alert("Success! Please check your email for the confirmation link to complete your registration.");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
