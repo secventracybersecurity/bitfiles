@@ -21,16 +21,24 @@ export async function getOptimalNodes(count: number): Promise<Node[]> {
 
 /**
  * STEP-5: Adaptive Probabilistic Distribution
- * Generates parity and distributes across optimal nodes.
+ * Generates parity based on node reliability and distributes across optimal nodes.
  */
 export async function distributeShards(fileId: string, shards: Blob[], nodes: Node[]) {
-  // 1. Generate Adaptive Parity Shard (APEM Step)
-  const parityShard = await generateParity(shards);
-  const allShards = [...shards, parityShard];
+  // 1. Determine optimal redundancy (APEM logic)
+  // Higher node failure rate = more parity shards
+  const avgReliability = nodes.reduce((acc, n) => acc + n.reliability_score, 0) / nodes.length;
+  const parityCount = avgReliability < 0.9 ? 2 : 1; 
+  
+  const parityShards = [];
+  for (let i = 0; i < parityCount; i++) {
+    parityShards.push(await generateParity(shards));
+  }
+  
+  const allShards = [...shards, ...parityShards];
 
-  // 2. Map shards to nodes (ensuring node count >= shard count for full distribution)
+  // 2. Map shards to nodes
   const shardPromises = allShards.map(async (shard, index) => {
-    const isParity = index === allShards.length - 1;
+    const isParity = index >= shards.length;
     const node = nodes[index % nodes.length];
     const shardHash = await calculateHash(shard);
     
