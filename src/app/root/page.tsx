@@ -54,84 +54,124 @@ export default function RootDashboard() {
     fetchLogs();
   }, []);
 
-  return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
-      {/* Sidebar */}
-      <aside className="w-80 border-r border-black/[0.03] bg-white p-8 flex flex-col gap-8">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 bg-[#0F172A] rounded-xl flex items-center justify-center text-white">
-            <Lock size={20} />
-          </div>
-          <div>
-            <h2 className="text-xl font-black text-[#0F172A] tracking-tight">Founder Root</h2>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Secure Governance</p>
-          </div>
-        </div>
+    const handleAction = async (action: string, metadata: any) => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-        <nav className="flex-1 space-y-2">
-          <SidebarItem icon={Activity} label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
-          <SidebarItem icon={BrainCircuit} label="AI Brain Insights" active={activeTab === "ai"} onClick={() => router.push('/ai-admin')} />
-          <SidebarItem icon={Users} label="User Management" active={activeTab === "users"} onClick={() => setActiveTab("users")} />
-          <SidebarItem icon={History} label="Audit Logs" active={activeTab === "audit"} onClick={() => setActiveTab("audit")} />
-          <SidebarItem icon={Settings2} label="Network Config" active={activeTab === "config"} onClick={() => setActiveTab("config")} />
-        </nav>
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          event_type: 'admin_action',
+          metadata: { action, ...metadata }
+        });
+        
+        // Refresh logs
+        const { data: newLogs } = await supabase
+          .from('audit_logs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        setAuditLogs(newLogs || []);
+        
+        alert(`Action "${action}" recorded in immutable audit log.`);
+      } catch (error: any) {
+        alert("Action failed: " + error.message);
+      }
+    };
 
-        <div className="p-6 bg-red-50 rounded-[2rem] border border-red-100 space-y-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Emergency Actions</p>
-          <button className="w-full py-4 bg-red-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-700 transition-colors shadow-lg shadow-red-500/20">
-            <Power size={18} />
-            Halt Network
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-12 overflow-y-auto">
-        <header className="flex justify-between items-center mb-12">
-          <div>
-            <h1 className="text-4xl font-black tracking-tight text-[#0F172A]">Governance Overview</h1>
-            <p className="text-[#64748B] font-bold text-sm mt-1">Founders are advisors to the math, not the users.</p>
-          </div>
-          <button 
-            onClick={() => router.push('/')}
-            className="px-6 py-3 bg-white border border-black/[0.05] rounded-2xl font-bold text-sm text-[#64748B] hover:text-[#0F172A] transition-all"
-          >
-            Exit Dashboard
-          </button>
-        </header>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {/* Pending Recommendations */}
-          <div className="bg-white p-10 rounded-[3rem] border border-black/[0.02] shadow-[0_20px_60px_rgba(0,0,0,0.03)] space-y-8">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-[#0F172A]">AI Governance Actions</h3>
-              <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">3 Pending</div>
+    return (
+      <div className="flex min-h-screen bg-[#F8FAFC]">
+        {/* Sidebar */}
+        <aside className="w-80 border-r border-black/[0.03] bg-white p-8 flex flex-col gap-8">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-10 h-10 bg-[#0F172A] rounded-xl flex items-center justify-center text-white">
+              <ShieldCheck size={20} />
             </div>
+            <div>
+              <h2 className="text-xl font-black text-[#0F172A] tracking-tight">Founder Root</h2>
+              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 font-bold">Secure Session Active</p>
+            </div>
+          </div>
 
-            <div className="space-y-4">
-              {[
-                { title: "Increase US-East Incentive", desc: "Regional capacity critical", type: "economic" },
-                { title: "Shard Re-balancing", desc: "Optimization of data distribution", type: "technical" },
-                { title: "Update Staking Floor", desc: "Enhance sybil resistance", type: "security" }
-              ].map((rec, i) => (
-                <div key={i} className="p-6 bg-[#F8FAFC] rounded-[2rem] border border-black/[0.02] space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <p className="font-bold text-lg text-[#0F172A]">{rec.title}</p>
-                      <p className="text-xs text-[#64748B] font-medium">{rec.desc}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button className="p-3 bg-white hover:bg-emerald-50 text-emerald-600 border border-black/[0.03] rounded-xl transition-all shadow-sm">
-                        <CheckCircle2 size={18} />
-                      </button>
-                      <button className="p-3 bg-white hover:bg-red-50 text-red-600 border border-black/[0.03] rounded-xl transition-all shadow-sm">
-                        <XCircle size={18} />
-                      </button>
+          <nav className="flex-1 space-y-2">
+            <SidebarItem icon={Activity} label="Overview" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
+            <SidebarItem icon={BrainCircuit} label="AI Brain Insights" active={activeTab === "ai"} onClick={() => router.push('/ai-admin')} />
+            <SidebarItem icon={Users} label="User Management" active={activeTab === "users"} onClick={() => setActiveTab("users")} />
+            <SidebarItem icon={History} label="Audit Logs" active={activeTab === "audit"} onClick={() => setActiveTab("audit")} />
+            <SidebarItem icon={Settings2} label="Network Config" active={activeTab === "config"} onClick={() => setActiveTab("config")} />
+          </nav>
+
+          <div className="p-6 bg-red-50 rounded-[2rem] border border-red-100 space-y-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Emergency Actions</p>
+            <button 
+              onClick={() => handleAction('HALT_NETWORK', { reason: 'Manual override', priority: 'CRITICAL' })}
+              className="w-full py-4 bg-red-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-700 transition-colors shadow-lg shadow-red-500/20 active:scale-95"
+            >
+              <Power size={18} />
+              Halt Network
+            </button>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-12 overflow-y-auto">
+          <header className="flex justify-between items-center mb-12">
+            <div className="space-y-1">
+              <h1 className="text-4xl font-black tracking-tight text-[#0F172A]">Governance Overview</h1>
+              <p className="text-[#64748B] font-bold text-sm">Founders are advisors to the math, not the users.</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Root Authority
+              </div>
+              <button 
+                onClick={() => router.push('/')}
+                className="px-6 py-3 bg-white border border-black/[0.05] rounded-2xl font-bold text-sm text-[#64748B] hover:text-[#0F172A] transition-all"
+              >
+                Exit Dashboard
+              </button>
+            </div>
+          </header>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            {/* Pending Recommendations */}
+            <div className="bg-white p-10 rounded-[3rem] border border-black/[0.02] shadow-[0_20px_60px_rgba(0,0,0,0.03)] space-y-8">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-black text-[#0F172A]">AI Governance Actions</h3>
+                <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">3 Pending</div>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  { id: "REC-001", title: "Increase US-East Incentive", desc: "Regional capacity critical", type: "economic" },
+                  { id: "REC-002", title: "Shard Re-balancing", desc: "Optimization of data distribution", type: "technical" },
+                  { id: "REC-003", title: "Update Staking Floor", desc: "Enhance sybil resistance", type: "security" }
+                ].map((rec, i) => (
+                  <div key={i} className="p-6 bg-[#F8FAFC] rounded-[2rem] border border-black/[0.02] space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <p className="font-bold text-lg text-[#0F172A]">{rec.title}</p>
+                        <p className="text-xs text-[#64748B] font-medium">{rec.desc}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleAction('APPROVE_RECOMMENDATION', { id: rec.id, title: rec.title })}
+                          className="p-3 bg-white hover:bg-emerald-50 text-emerald-600 border border-black/[0.03] rounded-xl transition-all shadow-sm active:scale-90"
+                        >
+                          <CheckCircle2 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleAction('REJECT_RECOMMENDATION', { id: rec.id, title: rec.title })}
+                          className="p-3 bg-white hover:bg-red-50 text-red-600 border border-black/[0.03] rounded-xl transition-all shadow-sm active:scale-90"
+                        >
+                          <XCircle size={18} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
             
             <button className="w-full py-5 bg-[#0F172A] text-white rounded-[2rem] font-bold flex items-center justify-center gap-2 group">
               View All Recommendations
