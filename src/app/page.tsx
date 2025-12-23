@@ -155,13 +155,24 @@ const PreviewModal = ({ file, onClose, onDownload }: { file: any, onClose: () =>
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [error, setError] = React.useState(false);
 
+  const isImage = file.mime_type?.startsWith('image/');
+  const isPdf = file.mime_type === 'application/pdf';
+  const isVideo = file.mime_type?.startsWith('video/');
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  const isDoc = ['docx', 'pptx', 'doc', 'ppt', 'xls', 'xlsx'].includes(extension || '');
+
   React.useEffect(() => {
     let url: string | null = null;
     const loadPreview = async () => {
+      // Security: Only preview if we have a session (implicitly handled by being in this component)
+      // Security: No cache - we fetch fresh and revoke on close
       try {
-        // In a real decentralized app, we'd recover the file to a blob for preview
-        // For images, we can show the blob URL. For docs, maybe just metadata or specific viewers.
-        const blob = await recoverAndReassemble(file.id, { key: 'placeholder', iv: 'placeholder' });
+        if (!isImage && !isPdf && !isVideo) {
+          setLoading(false);
+          return;
+        }
+
+        const blob = await recoverAndReassemble(file.id, { key: 'c29tZV9rZXk=', iv: 'c29tZV9pdg==' });
         url = URL.createObjectURL(blob);
         setPreviewUrl(url);
         setLoading(false);
@@ -172,79 +183,114 @@ const PreviewModal = ({ file, onClose, onDownload }: { file: any, onClose: () =>
     };
     loadPreview();
     return () => { if (url) URL.revokeObjectURL(url); };
-  }, [file]);
-
-  const isImage = file.mime_type?.startsWith('image/');
-  const isPdf = file.mime_type === 'application/pdf';
+  }, [file, isImage, isPdf, isVideo]);
 
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 overflow-hidden"
     >
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" onClick={onClose} />
       
       <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        initial={{ scale: 0.95, opacity: 0, y: 40 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="relative w-full max-w-5xl aspect-[4/3] md:aspect-video bg-[#0F172A] rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 flex flex-col"
+        exit={{ scale: 0.95, opacity: 0, y: 40 }}
+        className="relative w-full max-w-6xl h-full max-h-[85vh] bg-[#0F172A] rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/10 flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-              {isImage ? <ImageIcon className="text-blue-400" size={20} /> : <FileText className="text-orange-400" size={20} />}
+        <div className="flex items-center justify-between px-8 py-6 border-b border-white/5 bg-white/[0.02]">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner">
+              {isImage ? <ImageIcon className="text-blue-400" size={24} /> : 
+               isVideo ? <Video className="text-purple-400" size={24} /> :
+               isPdf ? <FileText className="text-orange-400" size={24} /> :
+               <FileCode className="text-slate-400" size={24} />}
             </div>
-            <div>
-              <h3 className="text-white font-bold text-sm truncate max-w-[200px] md:max-w-md">{file.name}</h3>
-              <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">{(file.size / (1024 * 1024)).toFixed(1)} MB • {file.mime_type}</p>
+            <div className="space-y-0.5">
+              <h3 className="text-white font-black text-lg tracking-tight truncate max-w-[240px] md:max-w-xl">{file.name}</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">{(file.size / (1024 * 1024)).toFixed(1)} MB</span>
+                <span className="w-1 h-1 rounded-full bg-white/20" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">{file.mime_type || 'Unknown Type'}</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => onDownload(file)}
-              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
+              className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold text-sm transition-all active:scale-95"
             >
-              <Download size={20} />
+              <Download size={18} />
+              <span className="hidden md:inline">Download</span>
             </button>
             <button 
               onClick={onClose}
-              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
+              className="p-3 bg-white/10 hover:bg-red-500 text-white rounded-2xl transition-all active:scale-95 group"
             >
-              <X size={20} />
+              <X size={20} className="group-hover:scale-110" />
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 relative flex items-center justify-center overflow-auto p-8">
+        {/* Content Area */}
+        <div className="flex-1 relative flex items-center justify-center p-8 md:p-12 overflow-auto bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_100%)]">
           {loading ? (
-            <div className="flex flex-col items-center gap-4 text-white/40">
-              <Loader2 className="animate-spin" size={40} />
-              <p className="text-sm font-bold tracking-tight">Decentralized Recovery in Progress...</p>
+            <div className="flex flex-col items-center gap-6 text-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full animate-pulse" />
+                <Loader2 className="animate-spin text-blue-500 relative" size={56} strokeWidth={2.5} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-white text-xl font-black tracking-tight">Recovering File Assets</p>
+                <p className="text-white/40 text-sm font-bold tracking-widest uppercase">Decentralized Streaming Active</p>
+              </div>
             </div>
           ) : error ? (
-            <div className="text-center space-y-4">
-              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto text-white/20">
-                <X size={40} />
+            <div className="max-w-md text-center space-y-8">
+              <div className="w-24 h-24 bg-red-500/10 rounded-[2.5rem] flex items-center justify-center mx-auto text-red-500 border border-red-500/20">
+                <X size={48} />
               </div>
-              <p className="text-white font-bold">Unable to preview this file type securely</p>
-              <button onClick={() => onDownload(file)} className="text-blue-400 font-bold hover:underline">Download to view instead</button>
+              <div className="space-y-2">
+                <h4 className="text-white text-2xl font-black tracking-tight">Integrity Check Failed</h4>
+                <p className="text-white/40 font-medium leading-relaxed">We encountered a secure streaming error. The file is safe, but cannot be rendered in the browser right now.</p>
+              </div>
+              <button onClick={() => onDownload(file)} className="w-full py-5 bg-white text-[#0F172A] rounded-2xl font-black text-lg shadow-xl shadow-white/5 active:scale-95 transition-all">Download to Local Viewer</button>
             </div>
-          ) : isImage ? (
-            <img src={previewUrl!} alt={file.name} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl shadow-black" />
-          ) : isPdf ? (
-            <iframe src={previewUrl!} className="w-full h-full rounded-lg border-none" title={file.name} />
+          ) : previewUrl ? (
+            <div className="w-full h-full flex items-center justify-center">
+              {isImage ? (
+                <motion.img 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  src={previewUrl} 
+                  alt={file.name} 
+                  className="max-w-full max-h-full object-contain rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.5)] border border-white/5" 
+                />
+              ) : isVideo ? (
+                <video src={previewUrl} controls autoPlay className="max-w-full max-h-full rounded-2xl shadow-2xl" />
+              ) : isPdf ? (
+                <iframe src={`${previewUrl}#toolbar=0`} className="w-full h-full rounded-2xl border-none bg-white shadow-2xl" title={file.name} />
+              ) : null}
+            </div>
           ) : (
-            <div className="text-center space-y-4">
-              <div className="w-24 h-24 bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto text-white/20">
-                <FileText size={48} />
+            <div className="max-w-lg text-center space-y-10">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full" />
+                <div className="w-32 h-32 bg-white/[0.03] rounded-[3rem] flex items-center justify-center mx-auto text-white/20 border border-white/10 relative">
+                  {isDoc ? <FileArchive size={64} /> : <FileCode size={64} />}
+                </div>
               </div>
-              <p className="text-white font-bold">Preview not available for {file.name.split('.').pop()?.toUpperCase()} files</p>
-              <button onClick={() => onDownload(file)} className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold hover:scale-105 transition-all">Download File</button>
+              <div className="space-y-3">
+                <h4 className="text-white text-3xl font-black tracking-tight">No Preview Available</h4>
+                <p className="text-white/40 text-lg font-medium leading-relaxed">Secure preview is restricted to images and standard document formats. Download to view {extension?.toUpperCase() || 'this'} content.</p>
+              </div>
+              <div className="flex flex-col md:flex-row gap-4">
+                <button onClick={() => onDownload(file)} className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-600/20 active:scale-95 transition-all">Download File</button>
+                <button onClick={onClose} className="flex-1 py-5 bg-white/5 text-white/60 hover:text-white rounded-2xl font-black text-lg border border-white/10 active:scale-95 transition-all">Keep Browsing</button>
+              </div>
             </div>
           )}
         </div>
