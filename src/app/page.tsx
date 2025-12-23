@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Shell } from "@/components/Shell";
 import { motion, AnimatePresence } from "framer-motion";
+import JSZip from "jszip";
 import { 
   Image as ImageIcon, 
   FileText, 
@@ -25,7 +26,9 @@ import {
   Download,
   Trash2,
   Maximize2,
-  Check
+  Check,
+  FileCode,
+  FileArchive
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
