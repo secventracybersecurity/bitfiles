@@ -660,6 +660,50 @@ const BulkActionBar = ({ selectedCount, onClear, onDownload, onDelete, isDeletin
   </AnimatePresence>
 );
 
+// --- Recent Items Row ---
+const RecentItems = ({ files, onPreview }: { files: any[], onPreview: (file: any) => void }) => {
+  const recentFiles = files
+    .filter(f => f.mime_type?.startsWith('image/') || f.mime_type === 'application/pdf')
+    .slice(0, 5);
+
+  if (recentFiles.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between px-2">
+        <h2 className="text-sm font-black text-[#64748B] uppercase tracking-[0.2em]">Recently Distributed</h2>
+        <button className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">View All</button>
+      </div>
+      <div className="flex gap-4 overflow-x-auto pb-4 px-2 no-scrollbar scroll-smooth">
+        {recentFiles.map((file) => (
+          <motion.div
+            key={file.id}
+            whileHover={{ y: -4 }}
+            onClick={() => onPreview(file)}
+            className="flex-shrink-0 w-32 group cursor-pointer"
+          >
+            <div className="aspect-square bg-white rounded-2xl border border-black/[0.03] shadow-[0_4px_12px_rgba(0,0,0,0.02)] overflow-hidden relative mb-2">
+              <div className="absolute inset-0 bg-slate-100 flex items-center justify-center">
+                {file.mime_type?.startsWith('image/') ? (
+                  <ImageIcon className="text-blue-500/40" size={24} />
+                ) : (
+                  <FileText className="text-orange-500/40" size={24} />
+                )}
+              </div>
+              {/* Thumbnail placeholder - real one would load here */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                 <Maximize2 size={12} className="text-white" />
+              </div>
+            </div>
+            <p className="text-[10px] font-bold text-[#0F172A] truncate px-1">{file.name}</p>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// --- Empty State ---
 const EmptyState = () => (
   <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 col-span-full">
     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
