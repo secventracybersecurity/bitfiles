@@ -19,8 +19,12 @@ export interface Profile {
 export function useAppState() {
   const [user, setUser] = React.useState<User | null>(null);
   const [profile, setProfile] = React.useState<Profile | null>(null);
+  const [vaultKey, setVaultKey] = React.useState<CryptoKey | null>(null);
   const [loading, setLoading] = React.useState(true);
   const supabase = createClient();
+
+  // Try to recover vault key from session if possible (advanced demo)
+  // For now, we'll just keep it in memory
 
   const fetchProfile = React.useCallback(async (userId: string, retryCount = 0) => {
     const { data, error } = await supabase
