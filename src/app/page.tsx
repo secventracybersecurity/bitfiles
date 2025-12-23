@@ -15,9 +15,108 @@ import {
   ArrowLeft,
   HardDrive,
   BarChart3,
-  Wallet
+  Wallet,
+  Lock,
+  Mail,
+  ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
+import { encryptFile } from "@/lib/storage";
+import { generateParity } from "@/lib/apem";
+
+// --- Auth View ---
+const AuthView = () => {
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [isSignUp, setIsSignUp] = React.useState(false);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: { data: { username: email.split('@')[0] } }
+        });
+        if (error) throw error;
+        alert("Check your email for the confirmation link!");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
+      <div className="w-full max-w-md bg-white p-10 rounded-[3rem] border border-black/[0.02] shadow-[0_20px_60px_rgba(0,0,0,0.03)] space-y-8">
+        <div className="text-center space-y-2">
+          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">
+            {isSignUp ? "Create Account" : "Welcome Back"}
+          </h2>
+          <p className="text-[#64748B] text-sm font-medium">
+            {isSignUp ? "Start your decentralized journey" : "Log in to access your files"}
+          </p>
+        </div>
+
+        <form onSubmit={handleAuth} className="space-y-4">
+          <div className="space-y-2">
+            <div className="relative">
+              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
+              <input 
+                type="email" 
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[#F8FAFC] border border-black/[0.03] rounded-2xl py-5 pl-14 pr-6 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                required
+              />
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
+              <input 
+                type="password" 
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-[#F8FAFC] border border-black/[0.03] rounded-2xl py-5 pl-14 pr-6 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                required
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-5 bg-[#3B82F6] text-white rounded-2xl font-bold text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+          >
+            {loading ? "Please wait..." : (isSignUp ? "Sign Up" : "Sign In")}
+            {!loading && <ArrowRight size={20} />}
+          </button>
+        </form>
+
+        <p className="text-center text-sm font-bold text-[#64748B]">
+          {isSignUp ? "Already have an account?" : "Don't have an account?"}
+          <button 
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="ml-2 text-blue-600 hover:underline"
+          >
+            {isSignUp ? "Sign In" : "Sign Up"}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+};
+
 
 // --- Sub-components for Files Tab ---
 const CategoryCard = ({ icon: Icon, label, count, color }: any) => (
