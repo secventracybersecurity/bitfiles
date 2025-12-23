@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Folder, Wallet, Search, Plus, Menu, User, LogOut, Settings, LayoutDashboard, X } from "lucide-react";
+import { Folder, Wallet, Search, Plus, Menu, User, LogOut, Settings, LayoutDashboard, X, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AnimatedBackground } from "./AnimatedBackground";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase-browser";
 import { useRouter } from "next/navigation";
 
 interface ShellProps {
@@ -26,6 +26,7 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
   const [user, setUser] = React.useState<any>(null);
   const [profile, setProfile] = React.useState<any>(null);
   const router = useRouter();
+  const supabase = createClient();
 
   React.useEffect(() => {
     const getSession = async () => {
@@ -47,6 +48,8 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
       setUser(session?.user ?? null);
       if (!session) {
         setProfile(null);
+      } else {
+        getSession();
       }
     });
 
@@ -59,9 +62,9 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
     setProfileOpen(false);
   };
 
-  const storageUsedGB = profile?.storage_used ? (profile.storage_used / (1024 * 1024 * 1024)).toFixed(1) : "0.0";
-  const storageLimitGB = profile?.storage_limit ? (profile.storage_limit / (1024 * 1024 * 1024)).toFixed(0) : "5";
-  const storagePercent = profile ? (profile.storage_used / profile.storage_limit) * 100 : 0;
+  const storageUsedGB = profile?.storage_used ? (Number(profile.storage_used) / (1024 * 1024 * 1024)).toFixed(1) : "0.0";
+  const storageLimitGB = profile?.storage_limit ? (Number(profile.storage_limit) / (1024 * 1024 * 1024)).toFixed(0) : "10";
+  const storagePercent = profile ? (Number(profile.storage_used) / Number(profile.storage_limit)) * 100 : 0;
 
   return (
     <div className="flex min-h-screen w-full bg-[#FAFAFA] text-[#0F172A] selection:bg-blue-100 font-sans overflow-x-hidden">
@@ -157,7 +160,7 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
                 </button>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-8 overflow-y-auto">
                 <div>
                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B] mb-4">Library</h3>
                   <div className="space-y-4">
@@ -190,6 +193,15 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
                     </div>
                   </div>
                 </div>
+
+                {/* Role indicator for admins */}
+                {profile?.role && profile.role !== 'USER' && (
+                  <div className="pt-6 border-t border-black/[0.05]">
+                    <div className="px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest text-center">
+                      {profile.role} ACCESS
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.aside>
           </>
@@ -234,6 +246,3 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
     </div>
   );
 }
-
-// Fixed missing import in Shell.tsx
-import { Lock } from "lucide-react";
