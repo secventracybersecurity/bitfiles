@@ -3,8 +3,11 @@
 import * as React from "react";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase-browser";
+import { useAppState } from "@/lib/hooks/use-app-state";
+import { deriveMasterKey } from "@/lib/storage";
 
 export const Auth = () => {
+  const { setVaultKey } = useAppState() as any;
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -16,6 +19,7 @@ export const Auth = () => {
     setLoading(true);
     try {
       if (isSignUp) {
+        // 1. Sign Up
         const { data, error } = await supabase.auth.signUp({ 
           email, 
           password,
@@ -27,6 +31,19 @@ export const Auth = () => {
         if (error) throw error;
         
         if (data.user) {
+          // Generate a salt for the vault
+          const vaultSalt = crypto.getRandomValues(new Uint8Array(16));
+          const vaultSaltBase64 = btoa(String.fromCharCode(...vaultSalt));
+          
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            vault_salt: vaultSaltBase64
+          });
+
+          // Derive and set key
+          const key = await deriveMasterKey(password, vaultSalt);
+          setVaultKey(key);
+
           await supabase.from('audit_logs').insert({
             user_id: data.user.id,
             event_type: 'signup_attempt',
@@ -38,8 +55,30 @@ export const Auth = () => {
           alert("A verification link has been sent to your email. Please confirm to activate your account.");
         }
       } else {
+        // 1. Sign In
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+
+        // 2. Fetch vault salt and derive key
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('vault_salt')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profile?.vault_salt) {
+          const salt = Uint8Array.from(atob(profile.vault_salt), (c) => c.charCodeAt(0));
+          const key = await deriveMasterKey(password, salt);
+          setVaultKey(key);
+        } else {
+          // Fallback if salt is missing (should not happen in zero-trust flow)
+          console.warn("Vault salt missing for user. Initializing new salt.");
+          const vaultSalt = crypto.getRandomValues(new Uint8Array(16));
+          const vaultSaltBase64 = btoa(String.fromCharCode(...vaultSalt));
+          await supabase.from('profiles').update({ vault_salt: vaultSaltBase64 }).eq('id', data.user.id);
+          const key = await deriveMasterKey(password, vaultSalt);
+          setVaultKey(key);
+        }
 
         await supabase.from('audit_logs').insert({
           user_id: data.user?.id,
