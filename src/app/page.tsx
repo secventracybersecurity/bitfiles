@@ -20,7 +20,12 @@ import {
   Mail,
   ArrowRight,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  X,
+  Download,
+  Trash2,
+  Maximize2,
+  Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
