@@ -23,23 +23,9 @@ export function useAppState() {
   const [loading, setLoading] = React.useState(true);
   const supabase = createClient();
 
-  // Try to recover vault key from session if possible (advanced demo)
-  // For now, we'll just keep it in memory
+  return { user, profile, loading, vaultKey, setVaultKey, refreshProfile: () => user && fetchProfile(user.id) };
+}
 
-  const fetchProfile = React.useCallback(async (userId: string, retryCount = 0) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    if (error) {
-      // PGRST116 means no rows found
-      if (error.code === 'PGRST116' && retryCount < 3) {
-        console.warn(`Profile not found for ${userId}, retrying... (${retryCount + 1})`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return fetchProfile(userId, retryCount + 1);
-      }
       
         // If still not found after retries, try to create it as a safety fallback
         if (error.code === 'PGRST116') {
