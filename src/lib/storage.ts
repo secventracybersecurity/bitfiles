@@ -85,15 +85,16 @@ export async function recoverAndReassemble(
   if (error) throw error;
   if (!shards || shards.length === 0) throw new Error('Recovery manifest not found');
 
-  // Build simulated APEM Manifest from shard/node data
-  const manifest: APEMManifest = {
-    fileId,
-    targetRecoveryProbability: 0.99999,
-    nodeReliabilitySnapshot: shards.reduce((acc, s) => ({ ...acc, [s.nodes.id]: s.nodes.reliability_score }), {}),
-    shardWeights: shards.reduce((acc, s, i) => ({ ...acc, [i]: s.is_parity ? 0.8 : 1.0 }), {}),
-    minimumRequiredWeight: Math.ceil((shards.length - 1) * 0.7), // Assume 70% weight needed
-    creationTimestamp: Date.now()
-  };
+    // Build simulated APEM Manifest from shard/node data
+    const manifest: APEMManifest = {
+      fileId,
+      targetRecoveryProbability: 0.99999,
+      nodeReliabilitySnapshot: shards.reduce((acc, s) => ({ ...acc, [s.nodes.id]: s.nodes.reliability_score || 0.99 }), {}),
+      shardWeights: shards.reduce((acc, s, i) => ({ ...acc, [i]: s.is_parity ? 0.95 : 1.0 }), {}),
+      minimumRequiredWeight: Math.max(1, Math.floor(shards.filter(s => !s.is_parity).length * 0.8)),
+      creationTimestamp: Date.now()
+    };
+
 
   onProgress?.("Retrieving distributed shards...", 30);
 
