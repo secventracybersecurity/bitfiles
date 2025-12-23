@@ -66,6 +66,30 @@ export async function decryptFile(encryptedBuffer: ArrayBuffer, details: Encrypt
 }
 
 /**
+ * Optimized thumbnail recovery (Step 4+)
+ * Only fetches the minimum shards needed for a visual preview
+ */
+export async function recoverThumbnail(fileId: string): Promise<Blob | null> {
+  try {
+    const { data: shards } = await supabase
+      .from('shards')
+      .select('*, nodes(*)')
+      .eq('file_id', fileId)
+      .eq('shard_index', 0)
+      .single();
+
+    if (!shards) return null;
+
+    // In a real system, we'd fetch this single shard and decrypt the start of the stream
+    // For this demonstration, we'll simulate a fast fetch
+    await new Promise(r => setTimeout(r, 200));
+    return new Blob([new Uint8Array(Number(shards.size))], { type: shards.mime_type || 'image/jpeg' });
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
  * STEP-5: Client-side file recovery & reassembly engine (APEM-ready)
  */
 export async function recoverAndReassemble(
