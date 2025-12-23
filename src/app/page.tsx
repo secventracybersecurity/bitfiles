@@ -13,7 +13,9 @@ import {
   TrendingUp,
   ShieldCheck,
   CreditCard,
-  HelpCircle
+  HelpCircle,
+  Grid2X2,
+  List
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
