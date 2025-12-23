@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
+import fs from 'fs/promises';
+import path from 'path';
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { nodeId: string } }
+) {
+  try {
+    const { nodeId } = params;
+    const formData = await req.formData();
+    const chunk = formData.get('chunk') as Blob;
+    const fileId = formData.get('fileId') as string;
+    const chunkIndex = formData.get('chunkIndex') as string;
+    const chunkHash = formData.get('chunkHash') as string;
+    const nodeName = formData.get('nodeName') as string; // We use nodeName to find the directory for the demo
+
+    if (!chunk || !fileId || !chunkIndex) {
+      return NextResponse.json({ error: 'Missing data' }, { status: 400 });
+    }
+
+    const buffer = Buffer.from(await chunk.arrayBuffer());
+    
+    // In a real system, the node would be at a different URL.
+    // Here we simulate by storing in a specific folder.
+    const nodeDir = path.join(process.cwd(), 'storage', 'nodes', nodeName);
+    await fs.mkdir(nodeDir, { recursive: true });
+
+    const chunkFilename = `${fileId}_${chunkIndex}.shard`;
+    const filePath = path.join(nodeDir, chunkFilename);
+    await fs.writeFile(filePath, buffer);
+
+    // Register shard in DB (this would usually be done by the node reporting to coordinator)
+    const supabase = await createClient();
+    await supabase.from('shards').insert({
+      file_id: fileId,
+      node_id: nodeId,
+      shard_index: parseInt(chunkIndex),
+      shard_hash: chunkHash,
+      size: buffer.length
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error(`Node ${params.nodeId} Error:`, error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
