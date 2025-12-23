@@ -668,9 +668,10 @@ const BulkActionBar = ({ selectedCount, onClear, onDownload, onDelete, isDeletin
 
 // --- Recent Items Row ---
 const RecentItems = ({ files, onPreview }: { files: any[], onPreview: (file: any) => void }) => {
-  const recentFiles = files
+  const recentFiles = [...files]
     .filter(f => f.mime_type?.startsWith('image/') || f.mime_type === 'application/pdf')
-    .slice(0, 5);
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 8);
 
   if (recentFiles.length === 0) return null;
 
