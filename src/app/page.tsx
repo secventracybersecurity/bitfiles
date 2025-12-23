@@ -1080,6 +1080,9 @@ export default function NativeApp() {
               </div>
             </div>
 
+            {/* Recent Previews */}
+            <RecentItems files={files} onPreview={setPreviewFile} />
+
             {/* Files List Header */}
             <div className="space-y-6 pt-4">
               <div className="flex items-center justify-between px-2">
