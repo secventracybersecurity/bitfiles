@@ -22,17 +22,20 @@ export async function POST(
 
     const buffer = Buffer.from(await chunk.arrayBuffer());
     
-    // In a real system, the node would be at a different URL.
-    // Here we simulate by storing in a specific folder.
-    const nodeDir = path.join(process.cwd(), 'storage', 'nodes', nodeName);
+    const supabase = await createClient();
+    const { data: node } = await supabase.from('nodes').select('status, name').eq('id', nodeId).single();
+
+    if (!node || node.status !== 'online') {
+      return NextResponse.json({ error: 'Node is offline or decommissioned' }, { status: 503 });
+    }
+
+    const nodeDir = path.join(process.cwd(), 'storage', 'nodes', node.name);
     await fs.mkdir(nodeDir, { recursive: true });
 
     const chunkFilename = `${fileId}_${chunkIndex}.shard`;
     const filePath = path.join(nodeDir, chunkFilename);
     await fs.writeFile(filePath, buffer);
 
-    // Register shard in DB (this would usually be done by the node reporting to coordinator)
-    const supabase = await createClient();
     await supabase.from('shards').insert({
       file_id: fileId,
       node_id: nodeId,
