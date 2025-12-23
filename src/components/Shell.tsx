@@ -86,11 +86,7 @@ export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: S
             onClick={() => setProfileOpen(!profileOpen)}
             className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border border-black/[0.05]"
           >
-            {user ? (
-              <User className="text-blue-600" size={20} />
-            ) : (
-              <Lock className="text-[#64748B]" size={18} />
-            )}
+            <User className={user ? "text-blue-600" : "text-[#64748B]"} size={20} />
           </button>
 
           <AnimatePresence>
