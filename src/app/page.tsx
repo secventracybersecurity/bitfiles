@@ -14,7 +14,8 @@ import {
   Filter,
   ArrowLeft,
   HardDrive,
-  BarChart3
+  BarChart3,
+  Wallet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
