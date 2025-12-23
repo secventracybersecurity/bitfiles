@@ -92,11 +92,11 @@ export default function ChunkPreparationPage() {
       >
         <div className="space-y-12">
           {/* Header */}
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">
-              <Lock size={12} strokeWidth={3} />
-              Zero-Knowledge Pipeline
-            </div>
+            <div className="text-center space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                <Shield size={12} strokeWidth={3} />
+                Zero-Knowledge Pipeline
+              </div>
             <h1 className="text-4xl font-black text-[#0F172A] tracking-tight leading-none">
               {isProcessing || manifest ? "Secure Prep" : "Prepare File"}
             </h1>
