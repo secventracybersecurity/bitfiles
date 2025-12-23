@@ -18,12 +18,14 @@ import {
   Wallet,
   Lock,
   Mail,
-  ArrowRight
+  ArrowRight,
+  Loader2,
+  CheckCircle2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
-import { encryptFile } from "@/lib/storage";
-import { generateParity } from "@/lib/apem";
+import { encryptFile, recoverAndReassemble } from "@/lib/storage";
+import { getOptimalNodes, distributeShards } from "@/lib/distribution";
 
 // --- Auth View ---
 const AuthView = () => {
@@ -129,23 +131,41 @@ const CategoryCard = ({ icon: Icon, label, count, color }: any) => (
   </button>
 );
 
-const FileRow = ({ name, size, date, icon: Icon }: any) => (
-  <div className="flex items-center gap-4 py-4 active:bg-[#F8FAFC] transition-colors cursor-pointer group px-2 rounded-2xl">
-    <div className="w-12 h-12 rounded-xl bg-[#F1F5F9] flex items-center justify-center text-[#64748B] group-active:bg-[#3B82F6] group-active:text-white transition-all">
-      <Icon size={20} />
+const FileRow = ({ file, onDownload }: any) => {
+  const [downloading, setDownloading] = React.useState(false);
+  
+  const Icon = file.mime_type?.startsWith('image/') ? ImageIcon : 
+               file.mime_type?.startsWith('video/') ? Video : FileText;
+
+  const dateStr = new Date(file.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const sizeStr = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+  return (
+    <div 
+      onClick={() => {
+        if (!downloading) {
+          setDownloading(true);
+          onDownload(file).finally(() => setDownloading(false));
+        }
+      }}
+      className="flex items-center gap-4 py-4 active:bg-[#F8FAFC] transition-colors cursor-pointer group px-2 rounded-2xl"
+    >
+      <div className="w-12 h-12 rounded-xl bg-[#F1F5F9] flex items-center justify-center text-[#64748B] group-active:bg-[#3B82F6] group-active:text-white transition-all">
+        {downloading ? <Loader2 className="animate-spin" size={20} /> : <Icon size={20} />}
+      </div>
+      <div className="flex-1 min-w-0 border-b border-black/[0.03] pb-4 group-last:border-none group-last:pb-0">
+        <h4 className="font-bold text-[#0F172A] truncate text-sm">{file.name}</h4>
+        <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mt-0.5">{dateStr} • {sizeStr}</p>
+      </div>
+      <button className="p-2 text-[#94A3B8]">
+        <MoreHorizontal size={18} />
+      </button>
     </div>
-    <div className="flex-1 min-w-0 border-b border-black/[0.03] pb-4 group-last:border-none group-last:pb-0">
-      <h4 className="font-bold text-[#0F172A] truncate text-sm">{name}</h4>
-      <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mt-0.5">{date} • {size}</p>
-    </div>
-    <button className="p-2 text-[#94A3B8]">
-      <MoreHorizontal size={18} />
-    </button>
-  </div>
-);
+  );
+};
 
 // --- Dashboard View ---
-const DashboardView = ({ onBack }: { onBack: () => void }) => {
+const DashboardView = ({ onBack, profile }: { onBack: () => void, profile: any }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center gap-4">
@@ -162,7 +182,9 @@ const DashboardView = ({ onBack }: { onBack: () => void }) => {
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Total Files</p>
-            <h3 className="text-4xl font-black text-[#0F172A]">1,802</h3>
+            <h3 className="text-4xl font-black text-[#0F172A]">
+              {(profile?.photo_count || 0) + (profile?.doc_count || 0) + (profile?.video_count || 0)}
+            </h3>
           </div>
         </div>
 
@@ -172,8 +194,12 @@ const DashboardView = ({ onBack }: { onBack: () => void }) => {
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Storage Usage</p>
-            <h3 className="text-4xl font-black text-[#0F172A]">65%</h3>
-            <p className="text-xs font-bold text-[#64748B] mt-1">12.4 GB of 20 GB used</p>
+            <h3 className="text-4xl font-black text-[#0F172A]">
+              {profile ? Math.round((profile.storage_used / profile.storage_limit) * 100) : 0}%
+            </h3>
+            <p className="text-xs font-bold text-[#64748B] mt-1">
+              {(profile?.storage_used / (1024*1024*1024)).toFixed(1)} GB of {(profile?.storage_limit / (1024*1024*1024)).toFixed(0)} GB used
+            </p>
           </div>
         </div>
 
@@ -183,8 +209,8 @@ const DashboardView = ({ onBack }: { onBack: () => void }) => {
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Earnings Summary</p>
-            <h3 className="text-4xl font-black text-[#0F172A]">₹2,450</h3>
-            <p className="text-xs font-bold text-[#64748B] mt-1">Expected this month</p>
+            <h3 className="text-4xl font-black text-[#0F172A]">₹{profile?.total_earnings?.toFixed(0) || 0}</h3>
+            <p className="text-xs font-bold text-[#64748B] mt-1">Total rewards earned</p>
           </div>
         </div>
       </div>
@@ -195,11 +221,110 @@ const DashboardView = ({ onBack }: { onBack: () => void }) => {
 export default function NativeApp() {
   const [activeTab, setActiveTab] = React.useState("files");
   const [view, setView] = React.useState<"app" | "dashboard">("app");
+  const [user, setUser] = React.useState<any>(null);
+  const [profile, setProfile] = React.useState<any>(null);
+  const [files, setFiles] = React.useState<any[]>([]);
+  const [uploading, setUploading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchUserData(session.user.id);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchUserData(session.user.id);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchUserData = async (userId: string) => {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    setProfile(profileData);
+
+    const { data: fileData } = await supabase
+      .from('files')
+      .select('*')
+      .eq('owner_id', userId)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
+    setFiles(fileData || []);
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      // 1. Client-side encryption & Chunking
+      const { encryptedChunks, encryptionDetails } = await encryptFile(file);
+
+      // 2. Metadata registration
+      const { data: fileRecord, error: fileError } = await supabase
+        .from('files')
+        .insert({
+          owner_id: user.id,
+          name: file.name,
+          size: file.size,
+          mime_type: file.type,
+          encryption_method: 'AES-GCM',
+          erasure_coding_params: { n: 10, k: 7 } // Step 4 placeholder
+        })
+        .select()
+        .single();
+
+      if (fileError) throw fileError;
+
+      // 3. Shard distribution (Step 3 & 4)
+      const nodes = await getOptimalNodes(3);
+      await distributeShards(fileRecord.id, encryptedChunks, nodes);
+
+      // Refresh data
+      await fetchUserData(user.id);
+      alert("File distributed securely across STORZY network!");
+    } catch (error: any) {
+      alert("Encryption/Distribution failed: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = async (file: any) => {
+    try {
+      // Step 7: Recovery & Reassembly
+      // Note: In this simulation, we use encryptionDetails from metadata if we stored it
+      // For now, we simulate recovery of the same file
+      const blob = await recoverAndReassemble(file.id, { 
+        key: 'c29tZV9rZXk=', // Placeholder
+        iv: 'c29tZV9pdg==' // Placeholder
+      });
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      a.click();
+    } catch (error: any) {
+      alert("Recovery failed: " + error.message);
+    }
+  };
+
+  if (!user) {
+    return <AuthView />;
+  }
 
   if (view === "dashboard") {
     return (
       <Shell activeTab={activeTab} setActiveTab={setActiveTab} onDashboardClick={() => setView("dashboard")}>
-        <DashboardView onBack={() => setView("app")} />
+        <DashboardView profile={profile} onBack={() => setView("app")} />
       </Shell>
     );
   }
@@ -227,10 +352,10 @@ export default function NativeApp() {
 
             {/* Categories */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <CategoryCard icon={ImageIcon} label="Photos" count="1,284" color="bg-blue-50 text-blue-500" />
-              <CategoryCard icon={FileText} label="Docs" count="432" color="bg-orange-50 text-orange-500" />
-              <CategoryCard icon={Video} label="Videos" count="86" color="bg-purple-50 text-purple-500" />
-              <CategoryCard icon={MoreHorizontal} label="Other" count="156" color="bg-emerald-50 text-emerald-500" />
+              <CategoryCard icon={ImageIcon} label="Photos" count={profile?.photo_count || 0} color="bg-blue-50 text-blue-500" />
+              <CategoryCard icon={FileText} label="Docs" count={profile?.doc_count || 0} color="bg-orange-50 text-orange-500" />
+              <CategoryCard icon={Video} label="Videos" count={profile?.video_count || 0} color="bg-purple-50 text-purple-500" />
+              <CategoryCard icon={MoreHorizontal} label="Other" count="0" color="bg-emerald-50 text-emerald-500" />
             </div>
 
             {/* Files List Header */}
@@ -250,23 +375,38 @@ export default function NativeApp() {
               </div>
 
               {/* Files List */}
-              <div className="bg-white rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)] p-6 divide-y divide-black/[0.03]">
-                <FileRow name="Family_Vacation_2024.jpg" size="12.8 MB" date="2h ago" icon={ImageIcon} />
-                <FileRow name="Monthly_Report_Final.pdf" size="4.2 MB" date="5h ago" icon={FileText} />
-                <FileRow name="House_Walkthrough.mp4" size="84.5 MB" date="Yesterday" icon={Video} />
-                <FileRow name="Tax_Returns_2023.pdf" size="1.1 MB" date="Dec 12" icon={FileText} />
-                <FileRow name="Travel_Itinerary.docx" size="856 KB" date="Dec 10" icon={FileText} />
+              <div className="bg-white rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)] p-6 divide-y divide-black/[0.03] min-h-[200px]">
+                {files.length > 0 ? (
+                  files.map(file => (
+                    <FileRow key={file.id} file={file} onDownload={handleDownload} />
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+                      <FileText size={32} />
+                    </div>
+                    <p className="text-sm font-bold text-[#64748B]">No files uploaded yet</p>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Floating Upload Button */}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleUpload} 
+              className="hidden" 
+            />
             <motion.button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               whileTap={{ scale: 0.9 }}
               className="fixed bottom-28 right-6 md:bottom-12 md:right-12 w-16 h-16 bg-blue-600 text-white rounded-full shadow-[0_16px_32px_rgba(59,130,246,0.3)] flex items-center justify-center z-40"
             >
-              <Plus size={32} strokeWidth={3} />
+              {uploading ? <Loader2 className="animate-spin" size={32} strokeWidth={3} /> : <Plus size={32} strokeWidth={3} />}
             </motion.button>
           </motion.div>
         ) : (
