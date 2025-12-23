@@ -329,19 +329,25 @@ export default function NativeApp() {
 
   const handleDownload = async (file: any) => {
     try {
-      // Step 7: Recovery & Reassembly
-      // Note: In this simulation, we use encryptionDetails from metadata if we stored it
-      // For now, we simulate recovery of the same file
-      const blob = await recoverAndReassemble(file.id, { 
-        key: 'c29tZV9rZXk=', // Placeholder
-        iv: 'c29tZV9pdg==' // Placeholder
-      });
+      // Step 7: Recovery & Reassembly with Progress
+      const blob = await recoverAndReassemble(
+        file.id, 
+        { 
+          key: 'c29tZV9rZXk=', // Placeholder: In production, this would be retrieved from a secure vault or local storage
+          iv: 'c29tZV9pdg==' // Placeholder
+        },
+        (state, percent) => {
+          // You could show a toast or a progress bar here
+          console.log(`Download progress: ${state} (${percent}%)`);
+        }
+      );
       
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = file.name;
       a.click();
+      window.URL.revokeObjectURL(url);
     } catch (error: any) {
       alert("Recovery failed: " + error.message);
     }
