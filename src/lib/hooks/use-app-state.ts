@@ -37,28 +37,42 @@ export function useAppState() {
         return fetchProfile(userId, retryCount + 1);
       }
       
-      // If still not found after retries, try to create it as a safety fallback
-      if (error.code === 'PGRST116') {
-        console.log("Creating missing profile for user:", userId);
-        const { data: newData, error: createError } = await supabase
-          .from('profiles')
-          .insert({ 
-            id: userId, 
-            username: userId.split('-')[0], // Fallback username
-            storage_limit: 10737418240, 
-            storage_used: 0, 
-            role: 'USER' 
-          })
-          .select()
-          .single();
-        
-        if (createError) {
-          console.error("Critical: Failed to create profile:", createError);
+        // If still not found after retries, try to create it as a safety fallback
+        if (error.code === 'PGRST116') {
+          console.log("Creating missing profile for user:", userId);
+          const { data: newData, error: createError } = await supabase
+            .from('profiles')
+            .upsert({ 
+              id: userId, 
+              username: userId.split('-')[0], // Fallback username
+              storage_limit: 10737418240, 
+              storage_used: 0, 
+              role: 'USER' 
+            }, { onConflict: 'id' })
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error("Critical: Failed to create/fetch profile:", {
+              message: createError.message,
+              code: createError.code,
+              details: createError.details
+            });
+            // Try one last simple select just in case upsert failed but record exists
+            const { data: retryData } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .single();
+            
+            if (retryData) {
+              setProfile(retryData);
+            }
+            return;
+          }
+          setProfile(newData);
           return;
         }
-        setProfile(newData);
-        return;
-      }
 
       console.error("Error fetching profile:", {
         code: error.code,
