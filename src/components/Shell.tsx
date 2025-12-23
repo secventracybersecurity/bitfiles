@@ -5,6 +5,8 @@ import { Folder, Wallet, Search, Plus, Menu, User, LogOut, Settings, LayoutDashb
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AnimatedBackground } from "./AnimatedBackground";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -21,6 +23,42 @@ const tabs = [
 export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: ShellProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [profileOpen, setProfileOpen] = React.useState(false);
+  const [user, setUser] = React.useState<any>(null);
+  const [profile, setProfile] = React.useState<any>(null);
+  const router = useRouter();
+
+  React.useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        setProfile(profileData);
+      }
+    };
+
+    getSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.refresh();
+    setProfileOpen(false);
+  };
+
+  const storageUsedGB = profile?.storage_used ? (profile.storage_used / (1024 * 1024 * 1024)).toFixed(1) : "0.0";
+  const storageLimitGB = profile?.storage_limit ? (profile.storage_limit / (1024 * 1024 * 1024)).toFixed(0) : "5";
+  const storagePercent = profile ? (profile.storage_used / profile.storage_limit) * 100 : 0;
 
   return (
     <div className="flex min-h-screen w-full bg-[#FAFAFA] text-[#0F172A] selection:bg-blue-100 font-sans overflow-x-hidden">
