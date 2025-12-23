@@ -4,6 +4,7 @@ import * as React from "react";
 import { Folder, Cpu, User, Search, Plus, List, Grid2X2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { AnimatedBackground } from "./AnimatedBackground";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -20,6 +21,7 @@ const tabs = [
 export function Shell({ children, activeTab, setActiveTab }: ShellProps) {
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground selection:bg-primary/10">
+      <AnimatedBackground />
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 flex-col border-r bg-card p-6 fixed h-full">
         <div className="flex items-center gap-2 mb-8 px-2">
