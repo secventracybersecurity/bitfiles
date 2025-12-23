@@ -3,7 +3,7 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Shield as ShieldIcon, 
+  Shield as StorzyShield, 
   Layers, 
   Fingerprint, 
   CheckCircle2, 
@@ -23,7 +23,7 @@ const STATES = [
 ];
 
 const ICONS = [
-  ShieldIcon,
+  StorzyShield,
   Layers,
   Fingerprint,
   Loader2,
@@ -53,7 +53,7 @@ export default function ChunkPreparationPage() {
       
       // Step 1: Client-side encryption
       addLog("Deriving ephemeral encryption keys...");
-      const { encryptedChunks, chunkHashes, encryptionDetails } = await encryptFile(selectedFile);
+      const { encryptedChunks, chunkHashes } = await encryptFile(selectedFile);
       
       const encryptedBlob = new Blob(encryptedChunks);
       
@@ -112,7 +112,7 @@ export default function ChunkPreparationPage() {
           {/* Header */}
           <div className="text-center space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100/50">
-              <ShieldIcon size={12} strokeWidth={3} className="animate-pulse" />
+              <StorzyShield size={12} strokeWidth={3} className="animate-pulse" />
               Production Pipeline v2.0
             </div>
             <h1 className="text-5xl font-black text-[#0F172A] tracking-tighter leading-none">
