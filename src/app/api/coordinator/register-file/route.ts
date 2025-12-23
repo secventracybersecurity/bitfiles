@@ -11,9 +11,9 @@ export async function POST(req: NextRequest) {
       mime_type,
       size,
       total_chunks,
-      encryption_iv,
-      encryption_salt,
-      encryption_method
+      encrypted_fek,
+      fek_iv,
+      file_iv
     } = body;
 
     const supabase = await createClient();
@@ -26,9 +26,9 @@ export async function POST(req: NextRequest) {
         mime_type,
         size,
         total_chunks,
-        encryption_iv,
-        encryption_salt,
-        encryption_method,
+        encrypted_fek,
+        fek_iv,
+        file_iv,
         status: 'active'
       })
       .select()
