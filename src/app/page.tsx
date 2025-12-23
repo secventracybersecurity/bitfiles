@@ -324,27 +324,22 @@ const EarnView = ({ profile }: { profile: any }) => {
   
   // Simulated Constitutional metrics
   const dimensions = [
-    { label: "Storage (S)", value: 0.85, weight: 0.25, color: "bg-blue-500" },
-    { label: "Uptime (U)", value: 0.98, weight: 0.25, color: "bg-emerald-500" },
-    { label: "Reliability (R)", value: 0.92, weight: 0.20, color: "bg-purple-500" },
-    { label: "Trust (T)", value: 1.0, weight: 0.20, color: "bg-amber-500" },
-    { label: "Diversity (D)", value: 0.45, weight: 0.07, color: "bg-rose-500" },
-    { label: "Latency (L)", value: 0.78, weight: 0.03, color: "bg-slate-500" },
+    { label: "Storage (S)", value: 0.85, weight: 0.25, color: "bg-blue-500", desc: "Effective storage actually used (not declared)" },
+    { label: "Uptime (U)", value: 0.98, weight: 0.25, color: "bg-emerald-500", desc: "Uptime probability over rolling window" },
+    { label: "Reliability (R)", value: 0.92, weight: 0.20, color: "bg-purple-500", desc: "Historical success rate (reliability score)" },
+    { label: "Trust (T)", value: 1.0, weight: 0.20, color: "bg-amber-500", desc: "Proof challenges passed (trust score)" },
+    { label: "Diversity (D)", value: 0.45, weight: 0.07, color: "bg-rose-500", desc: "Failure-domain diversity factor" },
+    { label: "Latency (L)", value: 0.78, weight: 0.03, color: "bg-slate-500", desc: "Latency and availability responsiveness" },
   ];
 
   const ncs = dimensions.reduce((acc, d) => acc * Math.pow(d.value, d.weight), 1);
   
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-8 pb-32"
-    >
+    <div className="space-y-8 pb-32">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-[#0F172A] tracking-tight">Earn Rewards</h1>
-          <p className="text-[#64748B] font-bold mt-1 uppercase tracking-widest text-[10px]">Constitutional Incentive Engine v1.0</p>
+          <h1 className="text-4xl font-black text-[#0F172A] tracking-tight">Constitutional Earnings</h1>
+          <p className="text-[#64748B] font-bold mt-1 uppercase tracking-widest text-[10px]">Incentive Engine • PIFM++ Protocol</p>
         </div>
         
         <button 
@@ -357,7 +352,7 @@ const EarnView = ({ profile }: { profile: any }) => {
           )}
         >
           <div className={cn("w-2 h-2 rounded-full", nodeActive ? "bg-white animate-pulse" : "bg-white/40")} />
-          {nodeActive ? "NODE ACTIVE" : "START EARNING"}
+          {nodeActive ? "NODE ACTIVE" : "ACTIVATE NODE"}
         </button>
       </div>
 
@@ -367,29 +362,29 @@ const EarnView = ({ profile }: { profile: any }) => {
           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
             <Wallet size={80} />
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">Earnings Today</p>
-          <h3 className="text-4xl font-black text-[#0F172A] mt-2">₹{(ncs * 42).toFixed(2)}</h3>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">Real-time Yield</p>
+          <h3 className="text-4xl font-black text-[#0F172A] mt-2">₹{(ncs * 42.5).toFixed(2)}</h3>
           <p className="text-xs font-bold text-emerald-500 mt-2 flex items-center gap-1">
             <CheckCircle2 size={12} />
-            Verified by Proof-of-Storage
+            Cheating is economically irrational
           </p>
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">Monthly Estimate</p>
-          <h3 className="text-4xl font-black text-[#0F172A] mt-2">₹{(ncs * 42 * 30).toFixed(0)}</h3>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">Monthly Projection</p>
+          <h3 className="text-4xl font-black text-[#0F172A] mt-2">₹{(ncs * 42.5 * 30).toFixed(0)}</h3>
           <div className="mt-4 flex items-center gap-2">
             <div className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-500 rounded-full" style={{ width: '75%' }} />
+              <div className="h-full bg-blue-500 rounded-full" style={{ width: '88%' }} />
             </div>
-            <span className="text-[10px] font-black text-[#64748B]">75% Payout Probability</span>
+            <span className="text-[10px] font-black text-[#64748B]">EMA Smoothing Active</span>
           </div>
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">Yearly Projection</p>
-          <h3 className="text-4xl font-black text-[#0F172A] mt-2">₹{(ncs * 42 * 365).toFixed(0)}</h3>
-          <p className="text-xs font-bold text-[#64748B] mt-2">Compounding Reliability Bonus Active</p>
+          <h3 className="text-4xl font-black text-[#0F172A] mt-2">₹{(ncs * 42.5 * 365).toFixed(0)}</h3>
+          <p className="text-xs font-bold text-[#64748B] mt-2">Anti-Sybil diversity multiplier applied</p>
         </div>
       </div>
 
@@ -399,42 +394,45 @@ const EarnView = ({ profile }: { profile: any }) => {
         <div className="relative z-10 space-y-10">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-2xl font-black tracking-tight">Node Health Tensor</h3>
-              <p className="text-white/40 text-sm font-bold tracking-widest uppercase mt-1">Multi-Dimensional Performance Score</p>
+              <h3 className="text-2xl font-black tracking-tight">Node Contribution Tensor</h3>
+              <p className="text-white/40 text-sm font-bold tracking-widest uppercase mt-1">Multi-Dimensional Incentive Layer</p>
             </div>
             <div className="text-right">
               <div className="text-4xl font-black">{(ncs * 100).toFixed(1)}</div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Optimal Equilibrium</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Total NCS Score</div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-8">
             {dimensions.map((d) => (
               <div key={d.label} className="space-y-3">
                 <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-black text-white/40 uppercase tracking-tighter">{d.label}</span>
-                  <span className="text-xs font-bold">{(d.value * 100).toFixed(0)}%</span>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-tighter">{d.label}</span>
+                    <p className="text-[9px] text-white/20 font-bold leading-none">{d.desc}</p>
+                  </div>
+                  <span className="text-sm font-bold">{(d.value * 100).toFixed(0)}%</span>
                 </div>
-                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${d.value * 100}%` }}
                     className={cn("h-full rounded-full", d.color)}
                   />
                 </div>
-                <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Weight: {d.weight * 100}%</p>
+                <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Incentive Weight: {d.weight * 100}%</p>
               </div>
             ))}
           </div>
 
-          <div className="pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
                 <Lock size={20} className="text-blue-400" />
               </div>
               <div>
-                <h4 className="font-bold text-sm">Anti-Adversarial Shield</h4>
-                <p className="text-xs text-white/40 mt-1 leading-relaxed">Proof-of-Storage challenges are randomized and unpredictable to prevent cheating.</p>
+                <h4 className="font-bold text-sm tracking-tight">Sybil Resistance</h4>
+                <p className="text-[10px] text-white/40 mt-1 leading-relaxed">Correlated nodes share diminishing returns via diversity-weighted rewards.</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -442,14 +440,32 @@ const EarnView = ({ profile }: { profile: any }) => {
                 <BarChart3 size={20} className="text-emerald-400" />
               </div>
               <div>
-                <h4 className="font-bold text-sm">Economic Smoothing</h4>
-                <p className="text-xs text-white/40 mt-1 leading-relaxed">EMA filter applied to earnings to reward long-term consistency over temporary spikes.</p>
+                <h4 className="font-bold text-sm tracking-tight">Temporal Stability</h4>
+                <p className="text-[10px] text-white/40 mt-1 leading-relaxed">EMA filter rewards consistent contribution, not temporary spikes or farming.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+                <CheckCircle2 size={20} className="text-purple-400" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm tracking-tight">Proof Challenges</h4>
+                <p className="text-[10px] text-white/40 mt-1 leading-relaxed">Randomized audits prevent fake uptime and partial storage attacks.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+                <ArrowUpDown size={20} className="text-amber-400" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm tracking-tight">Vesting & Clawback</h4>
+                <p className="text-[10px] text-white/40 mt-1 leading-relaxed">Bonus rewards are reliability-based and subject to validation proofs.</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
