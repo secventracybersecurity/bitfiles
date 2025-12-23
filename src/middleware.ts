@@ -36,24 +36,27 @@ export async function middleware(request: NextRequest) {
   // RBAC Enforcement
   const url = new URL(request.url)
   
-  if (url.pathname.startsWith('/root') || url.pathname.startsWith('/ai-admin')) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-
-    // Fetch profile for role check
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-      if (url.pathname.startsWith('/root') && profile?.role !== 'ROOT_ADMIN') {
+    if (url.pathname.startsWith('/root') || url.pathname.startsWith('/ai-admin')) {
+      if (!user) {
         return NextResponse.redirect(new URL('/', request.url))
       }
 
-      // Spec: ai_admin_dashboard visibility: ROOT_ADMIN only
-      if (url.pathname.startsWith('/ai-admin') && profile?.role !== 'ROOT_ADMIN') {
+      // Fetch profile for role check
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile || profile.role !== 'ROOT_ADMIN') {
+        // Log unauthorized access attempt if user is authenticated but not root
+        if (user) {
+          await supabase.from('audit_logs').insert({
+            user_id: user.id,
+            event_type: 'unauthorized_admin_access',
+            metadata: { path: url.pathname, role: profile?.role || 'unknown' }
+          })
+        }
         return NextResponse.redirect(new URL('/', request.url))
       }
     }
