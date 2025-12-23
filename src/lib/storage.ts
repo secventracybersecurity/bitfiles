@@ -62,7 +62,7 @@ export async function decryptFile(encryptedBuffer: ArrayBuffer, details: Encrypt
     encryptedBuffer
   );
 
-  return new Blob([decryptedBlob]);
+  return new Blob([decryptedBuffer]);
 }
 
 /**
