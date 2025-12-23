@@ -156,6 +156,7 @@ const FileCard = ({ file, onDownload, onPreview, isSelected, onSelect, selection
 };
 
 export const FileBrowser = ({ user, profile }: FileBrowserProps) => {
+  const { user, profile, vaultKey } = useAppState() as any;
   const [files, setFiles] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState("");
