@@ -13,13 +13,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { encryptFile } from "@/lib/storage";
+import { useAppState } from "@/lib/hooks/use-app-state";
 
 const PIPELINE_STATES = [
   "Mathematically securing data (AES-256-GCM)…",
   "Fragmenting stream into cryptographic shards…",
-  "Calculating integrity proofs & hashes (SHA-256)…",
-  "Adaptive APEM redundancy scaling active",
-  "Data ready for decentralized distribution"
+  "Negotiating decentralized upload plan…",
+  "Distributing shards to independent nodes…",
+  "Verifying survival probability & manifest"
 ];
 
 const PIPELINE_ICONS = [
@@ -31,6 +32,7 @@ const PIPELINE_ICONS = [
 ];
 
 export default function NewPreparationPage() {
+  const { user, vaultKey } = useAppState() as any;
   const [activeState, setActiveState] = React.useState(0);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [file, setFile] = React.useState<File | null>(null);
@@ -43,6 +45,10 @@ export default function NewPreparationPage() {
   };
 
   const startPreparation = async (selectedFile: File) => {
+    if (!vaultKey) {
+      alert("Encryption key not found. Please log in again.");
+      return;
+    }
     setIsProcessing(true);
     setFile(selectedFile);
     setPipelineLogs([]);
@@ -52,50 +58,73 @@ export default function NewPreparationPage() {
       addLog(`Initializing Zero-Knowledge pipeline for ${selectedFile.name}`);
       
       // Step 1: Client-side encryption
-      addLog("Deriving ephemeral encryption keys...");
-      const { encryptedChunks, chunkHashes } = await encryptFile(selectedFile);
+      addLog("Encrypting payload with ephemeral AES-256-GCM key...");
+      const { encryptedChunks, chunkHashes, encryptionDetails } = await encryptFile(selectedFile, vaultKey);
       
-      const encryptedBlob = new Blob(encryptedChunks);
-      
-      // Step 2: Transition to fragmenting
+      // Step 2: Fragmenting
       setActiveState(1);
       addLog(`Fragmenting stream into ${encryptedChunks.length} shards of 4MB`);
-      await new Promise(r => setTimeout(r, 1200));
+      await new Promise(r => setTimeout(r, 800));
 
-      // Step 3: Transition to integrity proofs
+      // Step 3: Negotiate Upload Plan
       setActiveState(2);
-      addLog("Generating SHA-256 integrity proofs for each shard...");
-      await new Promise(r => setTimeout(r, 1000));
-      
-      // Step 4: APEM Scaling (Simulated Step 4)
-      setActiveState(3);
-      addLog("Analyzing network health... scaling APEM redundancy to 1.5x");
-      await new Promise(r => setTimeout(r, 1500));
-      
-      // Real backend call
-      const formData = new FormData();
-      formData.append('file', encryptedBlob);
-      formData.append('filename', selectedFile.name);
-      formData.append('mimeType', selectedFile.type);
-
-      const response = await fetch('/api/prepare', {
+      addLog("Requesting node assignment from coordinator...");
+      const planRes = await fetch('/api/coordinator/assign-nodes', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ totalChunks: encryptedChunks.length })
+      });
+      const { assignments } = await planRes.json();
+      addLog(`Assigned to ${assignments.length} unique storage nodes`);
+
+      // Step 4: Distribute Shards
+      setActiveState(3);
+      const fileId = crypto.randomUUID();
+      addLog("Streaming shards to decentralized nodes...");
+      
+      for (const assignment of assignments) {
+        const shard = encryptedChunks[assignment.chunkIndex];
+        const formData = new FormData();
+        formData.append('chunk', shard);
+        formData.append('fileId', fileId);
+        formData.append('chunkIndex', assignment.chunkIndex.toString());
+        
+        await fetch(`/api/node/${assignment.nodeId}/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        addLog(`Shard ${assignment.chunkIndex} verified on ${assignment.nodeName}`);
+      }
+
+      // Step 5: Finalize & Register
+      setActiveState(4);
+      addLog("Committing cryptographic manifest to coordinator...");
+      const regRes = await fetch('/api/coordinator/register-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: fileId,
+          owner_id: user.id,
+          name: selectedFile.name,
+          mime_type: selectedFile.type,
+          size: selectedFile.size,
+          total_chunks: encryptedChunks.length,
+          encrypted_fek: encryptionDetails.encryptedFEK,
+          fek_iv: encryptionDetails.fekIV,
+          file_iv: encryptionDetails.fileIV
+        })
       });
 
-      if (!response.ok) throw new Error('Chunking failed');
-      const result = await response.json();
-      setManifest({ ...result, chunkHashes });
+      const finalMetadata = await regRes.json();
+      setManifest({ ...finalMetadata, chunkHashes });
 
-      // Step 5: Final Success
-      setActiveState(4);
-      addLog("Preparation complete. Shards distributed in memory.");
+      addLog("Zero-Trust distribution complete.");
       setIsProcessing(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      addLog("CRITICAL ERROR: Pipeline interrupted.");
+      addLog(`CRITICAL ERROR: ${err.message}`);
       setIsProcessing(false);
-      alert("Preparation failed. Please try again.");
+      alert("Preparation failed: " + err.message);
     }
   };
 
