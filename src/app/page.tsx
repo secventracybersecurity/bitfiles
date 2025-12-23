@@ -127,17 +127,17 @@ const AuthView = () => {
                 required
               />
             </div>
-            <div className="relative">
-              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
-              <input 
-                type="password" 
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#F8FAFC] border border-black/[0.03] rounded-2xl py-5 pl-14 pr-6 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-                required
-              />
-            </div>
+              <div className="relative">
+                <Shield className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
+                <input 
+                  type="password" 
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-black/[0.03] rounded-2xl py-5 pl-14 pr-6 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  required
+                />
+              </div>
           </div>
 
           <button 
