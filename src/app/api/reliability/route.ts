@@ -1,23 +1,31 @@
 import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const nodeId = searchParams.get('nodeId');
+/**
+ * AI System Simulation: Reliability Scoring
+ * Location: Backend (Next.js API representing the AI System)
+ */
+export async function POST(req: Request) {
+  try {
+    const { nodeId } = await req.json();
 
-  if (!nodeId) {
-    return NextResponse.json({ error: 'Node ID is required' }, { status: 400 });
+    // In a real system, this would analyze uptime, proof-of-storage logs, etc.
+    // For now, we simulate an AI scoring process
+    const randomReliability = 0.95 + Math.random() * 0.05;
+
+    const { error } = await supabase
+      .from('nodes')
+      .update({ reliability_score: randomReliability })
+      .eq('id', nodeId);
+
+    if (error) throw error;
+
+    return NextResponse.json({ 
+      success: true, 
+      new_score: randomReliability,
+      recommendation: randomReliability < 0.96 ? 'Replicate shards to safer nodes' : 'Optimal'
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  // Mocking AI-based reliability scoring
-  // In a real scenario, this would analyze historical uptime, shard health, and node behavior
-  const baseReliability = 0.95;
-  const jitter = (Math.random() - 0.5) * 0.1;
-  const score = Math.min(1.0, Math.max(0.0, baseReliability + jitter));
-
-  return NextResponse.json({
-    nodeId,
-    reliabilityScore: score,
-    lastAnalysis: new Date().toISOString(),
-    status: 'healthy'
-  });
 }
