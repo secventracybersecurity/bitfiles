@@ -173,6 +173,7 @@ const PreviewModal = ({ file, onClose, onDownload }: { file: any, onClose: () =>
   const [loading, setLoading] = React.useState(true);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
   const [error, setError] = React.useState(false);
+  const [progressMsg, setProgressMsg] = React.useState("Re-proving data survival...");
 
   const isImage = file.mime_type?.startsWith('image/');
   const isPdf = file.mime_type === 'application/pdf';
@@ -183,15 +184,17 @@ const PreviewModal = ({ file, onClose, onDownload }: { file: any, onClose: () =>
   React.useEffect(() => {
     let url: string | null = null;
     const loadPreview = async () => {
-      // Security: Only preview if we have a session (implicitly handled by being in this component)
-      // Security: No cache - we fetch fresh and revoke on close
       try {
         if (!isImage && !isPdf && !isVideo) {
           setLoading(false);
           return;
         }
 
-        const blob = await recoverAndReassemble(file.id, { key: 'c29tZV9rZXk=', iv: 'c29tZV9pdg==' });
+        const blob = await recoverAndReassemble(
+          file.id, 
+          { key: 'c29tZV9rZXk=', iv: 'c29tZV9pdg==' },
+          (msg) => setProgressMsg(msg)
+        );
         url = URL.createObjectURL(blob);
         setPreviewUrl(url);
         setLoading(false);
@@ -263,8 +266,8 @@ const PreviewModal = ({ file, onClose, onDownload }: { file: any, onClose: () =>
                 <Loader2 className="animate-spin text-blue-500 relative" size={56} strokeWidth={2.5} />
               </div>
               <div className="space-y-1">
-                <p className="text-white text-xl font-black tracking-tight">Recovering File Assets</p>
-                <p className="text-white/40 text-sm font-bold tracking-widest uppercase">Decentralized Streaming Active</p>
+                <p className="text-white text-xl font-black tracking-tight">{progressMsg}</p>
+                <p className="text-white/40 text-sm font-bold tracking-widest uppercase">Decentralized APEM Mesh Active</p>
               </div>
             </div>
           ) : error ? (
