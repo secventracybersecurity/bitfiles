@@ -838,162 +838,140 @@ export default function NativeApp() {
 
   return (
     <Shell activeTab={activeTab} setActiveTab={setActiveTab} onDashboardClick={() => setView("dashboard")}>
-      <AnimatePresence mode="wait">
-        {activeTab === "files" ? (
-          <motion.div 
-            key="files"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-8 pb-32"
-          >
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
-              <input 
-                type="text" 
-                placeholder="Search files, folders..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-black/[0.03] shadow-[0_4px_20px_rgba(0,0,0,0.02)] rounded-[2rem] py-5 pl-14 pr-6 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-              />
-            </div>
+      {activeTab === "files" ? (
+        <motion.div 
+          key="files"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="space-y-8 pb-32"
+        >
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
+            <input 
+              type="text" 
+              placeholder="Search files, folders..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-black/[0.03] shadow-[0_4px_20px_rgba(0,0,0,0.02)] rounded-[2rem] py-5 pl-14 pr-6 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+            />
+          </div>
 
-            {/* Categories */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div onClick={() => setFilterCategory("photo")}>
-                <CategoryCard icon={ImageIcon} label="Photos" count={profile?.photo_count || 0} color={cn("bg-blue-50 text-blue-500", filterCategory === "photo" && "ring-2 ring-blue-500")} />
-              </div>
-              <div onClick={() => setFilterCategory("doc")}>
-                <CategoryCard icon={FileText} label="Docs" count={profile?.doc_count || 0} color={cn("bg-orange-50 text-orange-500", filterCategory === "doc" && "ring-2 ring-orange-500")} />
-              </div>
-              <div onClick={() => setFilterCategory("video")}>
-                <CategoryCard icon={Video} label="Videos" count={profile?.video_count || 0} color={cn("bg-purple-50 text-purple-500", filterCategory === "video" && "ring-2 ring-purple-500")} />
-              </div>
-              <div onClick={() => setFilterCategory("all")}>
-                <CategoryCard icon={MoreHorizontal} label="All Files" count={files.length} color={cn("bg-emerald-50 text-emerald-500", filterCategory === "all" && "ring-2 ring-emerald-500")} />
-              </div>
+          {/* Categories */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div onClick={() => setFilterCategory("photo")}>
+              <CategoryCard icon={ImageIcon} label="Photos" count={profile?.photo_count || 0} color={cn("bg-blue-50 text-blue-500", filterCategory === "photo" && "ring-2 ring-blue-500")} />
             </div>
+            <div onClick={() => setFilterCategory("doc")}>
+              <CategoryCard icon={FileText} label="Docs" count={profile?.doc_count || 0} color={cn("bg-orange-50 text-orange-500", filterCategory === "doc" && "ring-2 ring-orange-500")} />
+            </div>
+            <div onClick={() => setFilterCategory("video")}>
+              <CategoryCard icon={Video} label="Videos" count={profile?.video_count || 0} color={cn("bg-purple-50 text-purple-500", filterCategory === "video" && "ring-2 ring-purple-500")} />
+            </div>
+            <div onClick={() => setFilterCategory("all")}>
+              <CategoryCard icon={MoreHorizontal} label="All Files" count={files.length} color={cn("bg-emerald-50 text-emerald-500", filterCategory === "all" && "ring-2 ring-emerald-500")} />
+            </div>
+          </div>
 
-            {/* Files List Header */}
-            <div className="space-y-6 pt-4">
-              <div className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-2xl font-black text-[#0F172A] tracking-tight">
-                    {filterCategory === "all" ? "Recent Files" : `${filterCategory.charAt(0).toUpperCase() + filterCategory.slice(1)}s`}
-                  </h2>
-                  {selectedIds.length > 0 && (
-                    <button 
-                      onClick={() => setSelectedIds([])}
-                      className="text-xs font-bold text-blue-600 hover:underline"
-                    >
-                      Deselect All
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <select 
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                    className="flex items-center gap-2 px-3 py-2 bg-white border border-black/[0.03] rounded-xl text-xs font-bold text-[#64748B] hover:text-[#0F172A] transition-colors shadow-sm focus:outline-none"
+          {/* Files List Header */}
+          <div className="space-y-6 pt-4">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-black text-[#0F172A] tracking-tight">
+                  {filterCategory === "all" ? "Recent Files" : `${filterCategory.charAt(0).toUpperCase() + filterCategory.slice(1)}s`}
+                </h2>
+                {selectedIds.length > 0 && (
+                  <button 
+                    onClick={() => setSelectedIds([])}
+                    className="text-xs font-bold text-blue-600 hover:underline"
                   >
-                    <option value="date">Newest</option>
-                    <option value="name">Name</option>
-                    <option value="size">Size</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Files List */}
-              <div className="bg-white rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)] p-6 divide-y divide-black/[0.03] min-h-[200px]">
-                {filteredFiles.length > 0 ? (
-                  filteredFiles.map(file => (
-                    <FileRow 
-                      key={file.id} 
-                      file={file} 
-                      onDownload={handleDownload} 
-                      onPreview={setPreviewFile}
-                      isSelected={selectedIds.includes(file.id)}
-                      onSelect={toggleSelection}
-                      selectionMode={selectedIds.length > 0}
-                    />
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
-                      <FileText size={32} />
-                    </div>
-                    <p className="text-sm font-bold text-[#64748B]">No files uploaded yet</p>
-                  </div>
+                    Deselect All
+                  </button>
                 )}
               </div>
+              <div className="flex items-center gap-2">
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="flex items-center gap-2 px-3 py-2 bg-white border border-black/[0.03] rounded-xl text-xs font-bold text-[#64748B] hover:text-[#0F172A] transition-colors shadow-sm focus:outline-none"
+                >
+                  <option value="date">Newest</option>
+                  <option value="name">Name</option>
+                  <option value="size">Size</option>
+                </select>
+              </div>
             </div>
 
-            {/* Floating Upload Button */}
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleUpload} 
-              className="hidden" 
-            />
-            {selectedIds.length === 0 && (
-              <motion.button 
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                whileTap={{ scale: 0.9 }}
-                className="fixed bottom-28 right-6 md:bottom-12 md:right-12 w-16 h-16 bg-blue-600 text-white rounded-full shadow-[0_16px_32px_rgba(59,130,246,0.3)] flex items-center justify-center z-40"
-              >
-                {uploading ? <Loader2 className="animate-spin" size={32} strokeWidth={3} /> : <Plus size={32} strokeWidth={3} />}
-              </motion.button>
-            )}
-
-            <BulkActionBar 
-              selectedCount={selectedIds.length}
-              onClear={() => { setSelectedIds([]); setShowDeleteConfirm(false); }}
-              onDownload={handleBulkDownload}
-              onDelete={handleBulkDelete}
-              isDownloading={bulkLoading}
-              isDeleting={bulkLoading}
-              isConfirmingDelete={showDeleteConfirm}
-            />
-
-            <AnimatePresence>
-              {previewFile && (
-                <PreviewModal 
-                  file={previewFile} 
-                  onClose={() => setPreviewFile(null)} 
-                  onDownload={handleDownload}
-                />
+            {/* Files List */}
+            <div className="bg-white rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)] p-6 divide-y divide-black/[0.03] min-h-[200px]">
+              {filteredFiles.length > 0 ? (
+                filteredFiles.map(file => (
+                  <FileRow 
+                    key={file.id} 
+                    file={file} 
+                    onDownload={handleDownload} 
+                    onPreview={setPreviewFile}
+                    isSelected={selectedIds.includes(file.id)}
+                    onSelect={toggleSelection}
+                    selectionMode={selectedIds.length > 0}
+                  />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+                    <FileText size={32} />
+                  </div>
+                  <p className="text-sm font-bold text-[#64748B]">No files uploaded yet</p>
+                </div>
               )}
-            </AnimatePresence>
-          </motion.div>
-        ) : (
-          <motion.div 
-            key="node"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            className="flex flex-col items-center justify-center min-h-[60vh] space-y-6"
-          >
-             <div className="bg-white p-10 rounded-[3rem] border border-black/[0.02] shadow-[0_20px_50px_rgba(0,0,0,0.03)] text-center max-w-sm w-full space-y-6">
-                <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-3xl flex items-center justify-center mx-auto">
-                  <Wallet size={40} strokeWidth={1.5} />
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-2xl font-black text-[#0F172A]">Start Earning</h2>
-                  <p className="text-sm font-medium text-[#64748B] leading-relaxed">
-                    Share your unused storage space and get rewarded. Simple, secure, and automatic.
-                  </p>
-                </div>
-                <button className="w-full py-5 bg-[#0F172A] text-white rounded-[2rem] font-bold text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-black/10">
-                  Enable Node Mode
-                </button>
-             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Floating Upload Button */}
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleUpload} 
+            className="hidden" 
+          />
+          {selectedIds.length === 0 && (
+            <motion.button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileTap={{ scale: 0.9 }}
+              className="fixed bottom-28 right-6 md:bottom-12 md:right-12 w-16 h-16 bg-blue-600 text-white rounded-full shadow-[0_16px_32px_rgba(59,130,246,0.3)] flex items-center justify-center z-40"
+            >
+              {uploading ? <Loader2 className="animate-spin" size={32} strokeWidth={3} /> : <Plus size={32} strokeWidth={3} />}
+            </motion.button>
+          )}
+
+          <BulkActionBar 
+            selectedCount={selectedIds.length}
+            onClear={() => { setSelectedIds([]); setShowDeleteConfirm(false); }}
+            onDownload={handleBulkDownload}
+            onDelete={handleBulkDelete}
+            isDownloading={bulkLoading}
+            isDeleting={bulkLoading}
+            isConfirmingDelete={showDeleteConfirm}
+          />
+
+          <AnimatePresence>
+            {previewFile && (
+              <PreviewModal 
+                file={previewFile} 
+                onClose={() => setPreviewFile(null)} 
+                onDownload={handleDownload}
+              />
+            )}
+          </AnimatePresence>
+        </motion.div>
+      ) : (
+        <EarnView profile={profile} />
+      )}
     </Shell>
   );
 }
