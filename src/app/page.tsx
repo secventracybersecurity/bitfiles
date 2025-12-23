@@ -31,7 +31,8 @@ import {
   FileCode,
   FileArchive,
   LayoutGrid,
-  List
+  List,
+  Shield as ShieldIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase-browser";
