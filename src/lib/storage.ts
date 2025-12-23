@@ -44,6 +44,27 @@ export async function encryptFile(file: File): Promise<{ encryptedChunks: Blob[]
   };
 }
 
+export async function encryptFileSimple(file: File): Promise<{ encryptedBlob: Blob; encryptionDetails: EncryptionDetails }> {
+  const key = await generateKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  
+  const fileBuffer = await file.arrayBuffer();
+  const encryptedBuffer = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: iv },
+    key,
+    fileBuffer
+  );
+
+  const exportedKey = await crypto.subtle.exportKey('raw', key);
+  const keyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
+  const ivBase64 = btoa(String.fromCharCode(...iv));
+
+  return {
+    encryptedBlob: new Blob([encryptedBuffer]),
+    encryptionDetails: { key: keyBase64, iv: ivBase64 },
+  };
+}
+
 export async function decryptFile(encryptedBuffer: ArrayBuffer, details: EncryptionDetails): Promise<Blob> {
   const keyBuffer = Uint8Array.from(atob(details.key), (c) => c.charCodeAt(0));
   const iv = Uint8Array.from(atob(details.iv), (c) => c.charCodeAt(0));
