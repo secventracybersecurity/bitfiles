@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase-browser";
+import { useRouter } from "next/navigation";
 import { 
   encryptFile, 
   recoverAndReassemble, 
