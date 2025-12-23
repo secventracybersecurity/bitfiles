@@ -17,7 +17,7 @@ import {
   HardDrive,
   BarChart3,
   Wallet,
-  Lock,
+  Shield,
   Mail,
   ArrowRight,
   Loader2,
