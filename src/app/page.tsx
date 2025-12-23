@@ -146,7 +146,111 @@ const CategoryCard = ({ icon: Icon, label, count, color }: any) => (
   </button>
 );
 
-const FileRow = ({ file, onDownload }: any) => {
+// --- Preview Modal ---
+const PreviewModal = ({ file, onClose, onDownload }: { file: any, onClose: () => void, onDownload: (file: any) => Promise<void> }) => {
+  const [loading, setLoading] = React.useState(true);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const [error, setError] = React.useState(false);
+
+  React.useEffect(() => {
+    let url: string | null = null;
+    const loadPreview = async () => {
+      try {
+        // In a real decentralized app, we'd recover the file to a blob for preview
+        // For images, we can show the blob URL. For docs, maybe just metadata or specific viewers.
+        const blob = await recoverAndReassemble(file.id, { key: 'placeholder', iv: 'placeholder' });
+        url = URL.createObjectURL(blob);
+        setPreviewUrl(url);
+        setLoading(false);
+      } catch (e) {
+        setError(true);
+        setLoading(false);
+      }
+    };
+    loadPreview();
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [file]);
+
+  const isImage = file.mime_type?.startsWith('image/');
+  const isPdf = file.mime_type === 'application/pdf';
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+    >
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
+      
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        className="relative w-full max-w-5xl aspect-[4/3] md:aspect-video bg-[#0F172A] rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 flex flex-col"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+              {isImage ? <ImageIcon className="text-blue-400" size={20} /> : <FileText className="text-orange-400" size={20} />}
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-sm truncate max-w-[200px] md:max-w-md">{file.name}</h3>
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">{(file.size / (1024 * 1024)).toFixed(1)} MB • {file.mime_type}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => onDownload(file)}
+              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
+            >
+              <Download size={20} />
+            </button>
+            <button 
+              onClick={onClose}
+              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 relative flex items-center justify-center overflow-auto p-8">
+          {loading ? (
+            <div className="flex flex-col items-center gap-4 text-white/40">
+              <Loader2 className="animate-spin" size={40} />
+              <p className="text-sm font-bold tracking-tight">Decentralized Recovery in Progress...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center space-y-4">
+              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto text-white/20">
+                <X size={40} />
+              </div>
+              <p className="text-white font-bold">Unable to preview this file type securely</p>
+              <button onClick={() => onDownload(file)} className="text-blue-400 font-bold hover:underline">Download to view instead</button>
+            </div>
+          ) : isImage ? (
+            <img src={previewUrl!} alt={file.name} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl shadow-black" />
+          ) : isPdf ? (
+            <iframe src={previewUrl!} className="w-full h-full rounded-lg border-none" title={file.name} />
+          ) : (
+            <div className="text-center space-y-4">
+              <div className="w-24 h-24 bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto text-white/20">
+                <FileText size={48} />
+              </div>
+              <p className="text-white font-bold">Preview not available for {file.name.split('.').pop()?.toUpperCase()} files</p>
+              <button onClick={() => onDownload(file)} className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold hover:scale-105 transition-all">Download File</button>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const FileRow = ({ file, onDownload, onPreview, isSelected, onSelect, selectionMode }: any) => {
   const [downloading, setDownloading] = React.useState(false);
   
   const Icon = file.mime_type?.startsWith('image/') ? ImageIcon : 
@@ -155,26 +259,60 @@ const FileRow = ({ file, onDownload }: any) => {
   const dateStr = new Date(file.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const sizeStr = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (selectionMode || e.shiftKey) {
+      onSelect(file.id);
+      return;
+    }
+    onPreview(file);
+  };
+
+  const handleLongPress = () => {
+    if (!selectionMode) onSelect(file.id);
+  };
+
   return (
     <div 
-      onClick={() => {
-        if (!downloading) {
-          setDownloading(true);
-          onDownload(file).finally(() => setDownloading(false));
-        }
-      }}
-      className="flex items-center gap-4 py-4 active:bg-[#F8FAFC] transition-colors cursor-pointer group px-2 rounded-2xl"
+      onClick={handleClick}
+      onContextMenu={(e) => { e.preventDefault(); handleLongPress(); }}
+      className={cn(
+        "flex items-center gap-4 py-4 transition-all cursor-pointer group px-2 rounded-2xl relative",
+        isSelected ? "bg-blue-50/50" : "hover:bg-[#F8FAFC]"
+      )}
     >
-      <div className="w-12 h-12 rounded-xl bg-[#F1F5F9] flex items-center justify-center text-[#64748B] group-active:bg-[#3B82F6] group-active:text-white transition-all">
+      {/* Checkbox for Desktop Hover or Selection Mode */}
+      <div 
+        onClick={(e) => { e.stopPropagation(); onSelect(file.id); }}
+        className={cn(
+          "absolute left-[-12px] top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all z-10",
+          isSelected ? "bg-blue-600 border-blue-600 scale-110 shadow-lg shadow-blue-500/20" : "bg-white border-black/[0.05] opacity-0 group-hover:opacity-100",
+          selectionMode && "opacity-100 left-2"
+        )}
+      >
+        {isSelected && <Check size={14} className="text-white" strokeWidth={4} />}
+      </div>
+
+      <div className={cn(
+        "w-12 h-12 rounded-xl bg-[#F1F5F9] flex items-center justify-center text-[#64748B] transition-all shrink-0",
+        isSelected && "bg-blue-100 text-blue-600",
+        selectionMode && "ml-8"
+      )}>
         {downloading ? <Loader2 className="animate-spin" size={20} /> : <Icon size={20} />}
       </div>
+      
       <div className="flex-1 min-w-0 border-b border-black/[0.03] pb-4 group-last:border-none group-last:pb-0">
         <h4 className="font-bold text-[#0F172A] truncate text-sm">{file.name}</h4>
         <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mt-0.5">{dateStr} • {sizeStr}</p>
       </div>
-      <button className="p-2 text-[#94A3B8]">
-        <MoreHorizontal size={18} />
-      </button>
+      
+      {!selectionMode && (
+        <button 
+          onClick={(e) => { e.stopPropagation(); }}
+          className="p-2 text-[#94A3B8] hover:text-[#0F172A] transition-colors"
+        >
+          <MoreHorizontal size={18} />
+        </button>
+      )}
     </div>
   );
 };
