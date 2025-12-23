@@ -48,13 +48,13 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (url.pathname.startsWith('/root') && profile?.role !== 'ROOT_ADMIN') {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
+      if (url.pathname.startsWith('/root') && profile?.role !== 'ROOT_ADMIN') {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
 
-    if (url.pathname.startsWith('/ai-admin') && profile?.role !== 'AI_ADMIN') {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
+      if (url.pathname.startsWith('/ai-admin') && !['AI_ADMIN', 'ROOT_ADMIN'].includes(profile?.role || '')) {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
   }
 
   return response
