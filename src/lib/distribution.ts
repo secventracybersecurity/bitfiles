@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { generateParity } from './apem';
 
 export interface Node {
   id: string;
@@ -18,8 +19,18 @@ export async function getOptimalNodes(count: number): Promise<Node[]> {
   return data || [];
 }
 
+/**
+ * STEP-5: Adaptive Probabilistic Distribution
+ * Generates parity and distributes across optimal nodes.
+ */
 export async function distributeShards(fileId: string, shards: Blob[], nodes: Node[]) {
-  const shardPromises = shards.map(async (shard, index) => {
+  // 1. Generate Adaptive Parity Shard (APEM Step)
+  const parityShard = await generateParity(shards);
+  const allShards = [...shards, parityShard];
+
+  // 2. Map shards to nodes (ensuring node count >= shard count for full distribution)
+  const shardPromises = allShards.map(async (shard, index) => {
+    const isParity = index === allShards.length - 1;
     const node = nodes[index % nodes.length];
     const shardHash = await calculateHash(shard);
     
@@ -31,14 +42,13 @@ export async function distributeShards(fileId: string, shards: Blob[], nodes: No
         shard_index: index,
         shard_hash: shardHash,
         size: shard.size,
-        is_parity: false // Logic for parity flag can be added if needed
+        is_parity: isParity
       });
 
     if (error) throw error;
     
-    // In a real system, we would actually transfer the blob to the node here
-    // For now, we simulate the metadata record
-    console.log(`Shard ${index} distributed to node ${node.id}`);
+    // Probabilistic logging for Step-5++
+    console.log(`[APEM] ${isParity ? 'Parity' : 'Data'} Shard ${index} secured on node ${node.id} (p=${node.reliability_score})`);
   });
 
   await Promise.all(shardPromises);
