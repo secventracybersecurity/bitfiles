@@ -63,9 +63,9 @@ export const DashboardView = ({ profile, onBack }: DashboardViewProps) => {
             <FileText size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Network Health</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Total Files</p>
             <h3 className="text-4xl font-black text-[#0F172A]">
-              {networkStats ? (networkStats.network_health_score * 100).toFixed(1) : "0"}%
+              {(profile?.photo_count || 0) + (profile?.doc_count || 0) + (profile?.video_count || 0)}
             </h3>
           </div>
         </div>
@@ -74,9 +74,9 @@ export const DashboardView = ({ profile, onBack }: DashboardViewProps) => {
             <HardDrive size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Active Nodes</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Storage Usage</p>
             <h3 className="text-4xl font-black text-[#0F172A]">
-              {networkStats?.active_nodes || 0} / {networkStats?.total_nodes || 0}
+              {profile ? Math.round((profile.storage_used / profile.storage_limit) * 100) : 0}%
             </h3>
           </div>
         </div>
@@ -85,8 +85,8 @@ export const DashboardView = ({ profile, onBack }: DashboardViewProps) => {
             <BarChart3 size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Total Earnings</p>
-            <h3 className="text-4xl font-black text-[#0F172A]">₹{nodes.reduce((acc, n) => acc + (n.earnings_total || 0), 0).toFixed(0)}</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Earnings</p>
+            <h3 className="text-4xl font-black text-[#0F172A]">₹{profile?.total_earnings?.toFixed(0) || 0}</h3>
           </div>
         </div>
       </div>
@@ -95,20 +95,18 @@ export const DashboardView = ({ profile, onBack }: DashboardViewProps) => {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black text-[#0F172A]">Node Control Center</h3>
-            <p className="text-sm text-[#64748B]">AI-managed decentralized node availability</p>
+            <p className="text-sm text-[#64748B]">Simulate decentralized node network availability</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full animate-pulse ${networkStats?.active_nodes > 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-            <span className={`text-xs font-bold uppercase tracking-widest ${networkStats?.active_nodes > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-              {networkStats?.active_nodes > 0 ? 'Network Active' : 'Network Critical'}
-            </span>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+            <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Network Active</span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {nodes.map((node: any) => (
             <div 
-              key={node.node_id} 
+              key={node.id} 
               className={`p-4 rounded-3xl border transition-all duration-300 ${
                 node.status === 'online' 
                   ? 'bg-emerald-50/50 border-emerald-100 shadow-[0_4px_20px_rgba(16,185,129,0.05)]' 
@@ -119,7 +117,7 @@ export const DashboardView = ({ profile, onBack }: DashboardViewProps) => {
                 <span className={`text-[10px] font-black uppercase tracking-tighter ${
                   node.status === 'online' ? 'text-emerald-600' : 'text-slate-500'
                 }`}>
-                  {node.node_id}
+                  {node.name}
                 </span>
                 <div className={`w-1.5 h-1.5 rounded-full ${
                   node.status === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'
@@ -127,15 +125,15 @@ export const DashboardView = ({ profile, onBack }: DashboardViewProps) => {
               </div>
               
               <button
-                onClick={() => toggleNode(node.node_id, node.status)}
-                disabled={toggling === node.node_id}
+                onClick={() => toggleNode(node.id)}
+                disabled={toggling === node.id}
                 className={`w-full py-2 px-4 rounded-xl text-xs font-bold transition-all ${
                   node.status === 'online'
                     ? 'bg-white text-rose-500 border border-rose-100 hover:bg-rose-50'
                     : 'bg-slate-900 text-white hover:bg-slate-800'
                 } disabled:opacity-50 flex items-center justify-center`}
               >
-                {toggling === node.node_id ? <Loader2 className="animate-spin" size={12} /> : node.status === 'online' ? 'Stop Node' : 'Start Node'}
+                {toggling === node.id ? <Loader2 className="animate-spin" size={12} /> : node.status === 'online' ? 'Stop Node' : 'Start Node'}
               </button>
             </div>
           ))}
