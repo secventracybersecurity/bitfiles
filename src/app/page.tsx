@@ -854,6 +854,7 @@ export default function NativeApp() {
   const [bulkLoading, setBulkLoading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const supabase = createClient();
+  const router = useRouter();
 
   React.useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
