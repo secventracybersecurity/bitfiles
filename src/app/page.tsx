@@ -318,6 +318,141 @@ const PreviewModal = ({ file, onClose, onDownload }: { file: any, onClose: () =>
   );
 };
 
+// --- Earn View ---
+const EarnView = ({ profile }: { profile: any }) => {
+  const [nodeActive, setNodeActive] = React.useState(false);
+  
+  // Simulated Constitutional metrics
+  const dimensions = [
+    { label: "Storage (S)", value: 0.85, weight: 0.25, color: "bg-blue-500" },
+    { label: "Uptime (U)", value: 0.98, weight: 0.25, color: "bg-emerald-500" },
+    { label: "Reliability (R)", value: 0.92, weight: 0.20, color: "bg-purple-500" },
+    { label: "Trust (T)", value: 1.0, weight: 0.20, color: "bg-amber-500" },
+    { label: "Diversity (D)", value: 0.45, weight: 0.07, color: "bg-rose-500" },
+    { label: "Latency (L)", value: 0.78, weight: 0.03, color: "bg-slate-500" },
+  ];
+
+  const ncs = dimensions.reduce((acc, d) => acc * Math.pow(d.value, d.weight), 1);
+  
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-8 pb-32"
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-4xl font-black text-[#0F172A] tracking-tight">Earn Rewards</h1>
+          <p className="text-[#64748B] font-bold mt-1 uppercase tracking-widest text-[10px]">Constitutional Incentive Engine v1.0</p>
+        </div>
+        
+        <button 
+          onClick={() => setNodeActive(!nodeActive)}
+          className={cn(
+            "px-8 py-4 rounded-2xl font-black text-sm transition-all flex items-center gap-3 shadow-xl active:scale-95",
+            nodeActive 
+              ? "bg-emerald-500 text-white shadow-emerald-500/20" 
+              : "bg-[#0F172A] text-white shadow-black/10"
+          )}
+        >
+          <div className={cn("w-2 h-2 rounded-full", nodeActive ? "bg-white animate-pulse" : "bg-white/40")} />
+          {nodeActive ? "NODE ACTIVE" : "START EARNING"}
+        </button>
+      </div>
+
+      {/* Main Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-8 rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
+            <Wallet size={80} />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">Earnings Today</p>
+          <h3 className="text-4xl font-black text-[#0F172A] mt-2">₹{(ncs * 42).toFixed(2)}</h3>
+          <p className="text-xs font-bold text-emerald-500 mt-2 flex items-center gap-1">
+            <CheckCircle2 size={12} />
+            Verified by Proof-of-Storage
+          </p>
+        </div>
+
+        <div className="bg-white p-8 rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">Monthly Estimate</p>
+          <h3 className="text-4xl font-black text-[#0F172A] mt-2">₹{(ncs * 42 * 30).toFixed(0)}</h3>
+          <div className="mt-4 flex items-center gap-2">
+            <div className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full" style={{ width: '75%' }} />
+            </div>
+            <span className="text-[10px] font-black text-[#64748B]">75% Payout Probability</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">Yearly Projection</p>
+          <h3 className="text-4xl font-black text-[#0F172A] mt-2">₹{(ncs * 42 * 365).toFixed(0)}</h3>
+          <p className="text-xs font-bold text-[#64748B] mt-2">Compounding Reliability Bonus Active</p>
+        </div>
+      </div>
+
+      {/* Engine Status (Adversarial Robustness Layer) */}
+      <div className="bg-[#0F172A] rounded-[3rem] p-8 md:p-12 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10" />
+        <div className="relative z-10 space-y-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-black tracking-tight">Node Health Tensor</h3>
+              <p className="text-white/40 text-sm font-bold tracking-widest uppercase mt-1">Multi-Dimensional Performance Score</p>
+            </div>
+            <div className="text-right">
+              <div className="text-4xl font-black">{(ncs * 100).toFixed(1)}</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Optimal Equilibrium</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
+            {dimensions.map((d) => (
+              <div key={d.label} className="space-y-3">
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-black text-white/40 uppercase tracking-tighter">{d.label}</span>
+                  <span className="text-xs font-bold">{(d.value * 100).toFixed(0)}%</span>
+                </div>
+                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${d.value * 100}%` }}
+                    className={cn("h-full rounded-full", d.color)}
+                  />
+                </div>
+                <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Weight: {d.weight * 100}%</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+                <Lock size={20} className="text-blue-400" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm">Anti-Adversarial Shield</h4>
+                <p className="text-xs text-white/40 mt-1 leading-relaxed">Proof-of-Storage challenges are randomized and unpredictable to prevent cheating.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+                <BarChart3 size={20} className="text-emerald-400" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm">Economic Smoothing</h4>
+                <p className="text-xs text-white/40 mt-1 leading-relaxed">EMA filter applied to earnings to reward long-term consistency over temporary spikes.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 const FileRow = ({ file, onDownload, onPreview, isSelected, onSelect, selectionMode }: any) => {
   const [downloading, setDownloading] = React.useState(false);
   const touchTimeout = React.useRef<any>(null);
