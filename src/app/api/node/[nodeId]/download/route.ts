@@ -17,9 +17,10 @@ export async function GET(
     }
 
     const supabase = await createClient();
-    const { data: node } = await supabase.from('nodes').select('name').eq('id', nodeId).single();
+    const { data: node } = await supabase.from('nodes').select('name, status').eq('id', nodeId).single();
     
     if (!node) return NextResponse.json({ error: 'Node not found' }, { status: 404 });
+    if (node.status !== 'online') return NextResponse.json({ error: 'Node is currently offline' }, { status: 503 });
 
     const filePath = path.join(process.cwd(), 'storage', 'nodes', node.name, `${fileId}_${chunkIndex}.shard`);
     const buffer = await fs.readFile(filePath);
