@@ -78,3 +78,32 @@ export async function decryptFile(encryptedChunks: Blob[], details: EncryptionDe
 
   return new Blob([decryptedBuffer]);
 }
+
+/**
+ * Step 7: Client-side file recovery & reassembly
+ */
+export async function recoverAndReassemble(fileId: string, details: EncryptionDetails): Promise<Blob> {
+  // 1. Request recovery manifest (Fetch shard metadata)
+  const { data: shards, error } = await supabase
+    .from('shards')
+    .select('*')
+    .eq('file_id', fileId)
+    .order('shard_index', { ascending: true });
+
+  if (error) throw error;
+  if (!shards || shards.length === 0) throw new Error('File shards not found');
+
+  // 2. Select optimal shard set & Parallel fetch
+  // In a real system, we'd fetch from nodes. Here we simulate.
+  const fetchedChunks: Blob[] = await Promise.all(
+    shards.map(async (shard) => {
+      // Simulate fetch from node
+      // return await fetchFromNode(shard.node_id, shard.shard_hash);
+      return new Blob([new Uint8Array(shard.size)]); // Placeholder
+    })
+  );
+
+  // 3. Integrity verification & Erasure decoding (if needed)
+  // 4. Local decryption
+  return await decryptFile(fetchedChunks, details);
+}
