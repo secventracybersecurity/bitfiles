@@ -301,6 +301,7 @@ const PreviewModal = ({ file, onClose, onDownload }: { file: any, onClose: () =>
 
 const FileRow = ({ file, onDownload, onPreview, isSelected, onSelect, selectionMode }: any) => {
   const [downloading, setDownloading] = React.useState(false);
+  const touchTimeout = React.useRef<any>(null);
   
   const Icon = file.mime_type?.startsWith('image/') ? ImageIcon : 
                file.mime_type?.startsWith('video/') ? Video : FileText;
@@ -316,16 +317,27 @@ const FileRow = ({ file, onDownload, onPreview, isSelected, onSelect, selectionM
     onPreview(file);
   };
 
-  const handleLongPress = () => {
-    if (!selectionMode) onSelect(file.id);
+  const handleTouchStart = () => {
+    touchTimeout.current = setTimeout(() => {
+      if (!selectionMode) {
+        onSelect(file.id);
+        if (window.navigator.vibrate) window.navigator.vibrate(50);
+      }
+    }, 600);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchTimeout.current) clearTimeout(touchTimeout.current);
   };
 
   return (
     <div 
       onClick={handleClick}
-      onContextMenu={(e) => { e.preventDefault(); handleLongPress(); }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onContextMenu={(e) => { e.preventDefault(); if (!selectionMode) onSelect(file.id); }}
       className={cn(
-        "flex items-center gap-4 py-4 transition-all cursor-pointer group px-2 rounded-2xl relative",
+        "flex items-center gap-4 py-4 transition-all cursor-pointer group px-2 rounded-2xl relative select-none",
         isSelected ? "bg-blue-50/50" : "hover:bg-[#F8FAFC]"
       )}
     >
