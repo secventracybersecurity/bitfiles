@@ -812,7 +812,13 @@ export default function NativeApp() {
   }
 
   return (
-    <Shell activeTab={activeTab} setActiveTab={setActiveTab} onDashboardClick={() => setView("dashboard")}>
+    <Shell 
+      activeTab={activeTab} 
+      setActiveTab={setActiveTab} 
+      onDashboardClick={() => setView("dashboard")}
+      user={user}
+      profile={profile}
+    >
       <AnimatePresence mode="wait">
         {activeTab === "files" ? (
           <motion.div key="files" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="space-y-8 pb-32">
