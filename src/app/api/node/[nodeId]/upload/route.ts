@@ -36,6 +36,9 @@ export async function POST(
     const filePath = path.join(nodeDir, chunkFilename);
     await fs.writeFile(filePath, buffer);
 
+    // Update AI Metrics (Background)
+    updateNodeEarnings(nodeId).catch(console.error);
+
     await supabase.from('shards').insert({
       file_id: fileId,
       node_id: nodeId,
