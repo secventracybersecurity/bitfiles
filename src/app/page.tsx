@@ -439,7 +439,7 @@ const EarnView = ({ profile }: { profile: any }) => {
           <div className="pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                <Lock size={20} className="text-blue-400" />
+                <Shield size={20} className="text-blue-400" />
               </div>
               <div>
                 <h4 className="font-bold text-sm tracking-tight">Sybil Resistance</h4>
