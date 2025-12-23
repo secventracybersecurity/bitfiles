@@ -562,8 +562,14 @@ export default function NativeApp() {
     }
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+
   const handleBulkDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${selectedIds.length} files?`)) return;
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true);
+      return;
+    }
+    
     setBulkLoading(true);
     try {
       const { error } = await supabase
@@ -574,6 +580,7 @@ export default function NativeApp() {
       if (error) throw error;
       await fetchUserData(user.id);
       setSelectedIds([]);
+      setShowDeleteConfirm(false);
     } catch (error: any) {
       alert("Bulk delete failed: " + error.message);
     } finally {
