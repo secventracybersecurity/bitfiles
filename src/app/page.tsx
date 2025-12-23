@@ -558,10 +558,25 @@ export default function NativeApp() {
   const handleBulkDownload = async () => {
     setBulkLoading(true);
     try {
-      for (const id of selectedIds) {
-        const file = files.find(f => f.id === id);
-        if (file) await handleDownload(file);
+      const zip = new JSZip();
+      const selectedFiles = files.filter(f => selectedIds.includes(f.id));
+      
+      for (const file of selectedFiles) {
+        const blob = await recoverAndReassemble(
+          file.id, 
+          { key: 'c29tZV9rZXk=', iv: 'c29tZV9pdg==' }
+        );
+        zip.file(file.name, blob);
       }
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = window.URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `STORZY_Archive_${new Date().getTime()}.zip`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
       setSelectedIds([]);
     } catch (error: any) {
       alert("Bulk download failed: " + error.message);
