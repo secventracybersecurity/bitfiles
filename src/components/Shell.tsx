@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Folder, Wallet, Search, Plus, Menu, User, LogOut, Settings, LayoutDashboard, X, Lock } from "lucide-react";
+import { Folder, Wallet, Search, Plus, Menu, User, LogOut, Settings, LayoutDashboard, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AnimatedBackground } from "./AnimatedBackground";
