@@ -129,8 +129,8 @@ const AuthView = () => {
                 required
               />
             </div>
-              <div className="relative">
-                <Shield className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
+                <div className="relative">
+                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={20} />
                 <input 
                   type="password" 
                   placeholder="Password"
