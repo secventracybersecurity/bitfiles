@@ -2,8 +2,9 @@ import { supabase } from './supabase';
 import { recoverShard, calculateRecoveryProbability, APEMManifest } from './apem';
 
 export interface EncryptionDetails {
-  key: string; 
-  iv: string; 
+  encryptedFEK: string; 
+  fekIV: string;
+  fileIV: string;
 }
 
 export const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks
@@ -16,7 +17,10 @@ export async function generateKey(): Promise<CryptoKey> {
   );
 }
 
-export async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+/**
+ * Derives a Master Key from a password and salt (Step 1.4)
+ */
+export async function deriveMasterKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
@@ -39,42 +43,44 @@ export async function deriveKey(password: string, salt: Uint8Array): Promise<Cry
   );
 }
 
-export async function encryptFile(file: File, password?: string): Promise<{ encryptedChunks: Blob[]; encryptionDetails: EncryptionDetails; chunkHashes: string[] }> {
-  // Generate random file key
-  const fileKey = await crypto.subtle.generateKey(
+/**
+ * Encrypts a file using Zero-Trust Hybrid Encryption
+ */
+export async function encryptFile(file: File, masterKey: CryptoKey): Promise<{ 
+  encryptedChunks: Blob[]; 
+  encryptionDetails: EncryptionDetails; 
+  chunkHashes: string[];
+}> {
+  // 1. Generate random File Encryption Key (FEK)
+  const fek = await crypto.subtle.generateKey(
     { name: 'AES-GCM', length: 256 },
     true,
     ['encrypt', 'decrypt']
   );
   
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  // 2. Encrypt File Data with FEK
+  const fileIV = crypto.getRandomValues(new Uint8Array(12));
   const fileBuffer = await file.arrayBuffer();
-  
   const encryptedBuffer = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
-    fileKey,
+    { name: 'AES-GCM', iv: fileIV },
+    fek,
     fileBuffer
   );
 
-  // Derive master key if password provided (Step 1.4)
-  let finalKeyBase64: string;
-  if (password) {
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const masterKey = await deriveKey(password, salt);
-    const exportedFileKey = await crypto.subtle.exportKey('raw', fileKey);
-    const encryptedFileKey = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: new Uint8Array(12) }, // Fixed IV for key wrapping for demo
-      masterKey,
-      exportedFileKey
-    );
-    finalKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(encryptedFileKey)));
-  } else {
-    const exportedKey = await crypto.subtle.exportKey('raw', fileKey);
-    finalKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
-  }
+  // 3. Encrypt FEK with MasterKey (Key Wrapping)
+  const fekIV = crypto.getRandomValues(new Uint8Array(12));
+  const exportedFEK = await crypto.subtle.exportKey('raw', fek);
+  const encryptedFEKBuffer = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: fekIV },
+    masterKey,
+    exportedFEK
+  );
 
-  const ivBase64 = btoa(String.fromCharCode(...iv));
+  const encryptedFEKBase64 = btoa(String.fromCharCode(...new Uint8Array(encryptedFEKBuffer)));
+  const fekIVBase64 = btoa(String.fromCharCode(...fekIV));
+  const fileIVBase64 = btoa(String.fromCharCode(...fileIV));
 
+  // 4. Chunking & Hashing
   const encryptedChunks: Blob[] = [];
   const chunkHashes: string[] = [];
   const totalSize = encryptedBuffer.byteLength;
@@ -84,7 +90,6 @@ export async function encryptFile(file: File, password?: string): Promise<{ encr
     const chunkBlob = new Blob([chunkData]);
     encryptedChunks.push(chunkBlob);
     
-    // Generate chunk hash (Step 2.3)
     const hashBuffer = await crypto.subtle.digest('SHA-256', chunkData);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -94,46 +99,42 @@ export async function encryptFile(file: File, password?: string): Promise<{ encr
   return {
     encryptedChunks,
     chunkHashes,
-    encryptionDetails: { key: finalKeyBase64, iv: ivBase64 },
+    encryptionDetails: { 
+      encryptedFEK: encryptedFEKBase64, 
+      fekIV: fekIVBase64,
+      fileIV: fileIVBase64
+    },
   };
 }
 
-export async function encryptFileSimple(file: File): Promise<{ encryptedBlob: Blob; encryptionDetails: EncryptionDetails }> {
-  const key = await generateKey();
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  
-  const fileBuffer = await file.arrayBuffer();
-  const encryptedBuffer = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
-    key,
-    fileBuffer
+export async function decryptFile(
+  encryptedBuffer: ArrayBuffer, 
+  details: EncryptionDetails,
+  masterKey: CryptoKey
+): Promise<Blob> {
+  // 1. Decrypt FEK using MasterKey
+  const encryptedFEK = Uint8Array.from(atob(details.encryptedFEK), (c) => c.charCodeAt(0));
+  const fekIV = Uint8Array.from(atob(details.fekIV), (c) => c.charCodeAt(0));
+  const fileIV = Uint8Array.from(atob(details.fileIV), (c) => c.charCodeAt(0));
+
+  const fekBuffer = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: fekIV },
+    masterKey,
+    encryptedFEK
   );
 
-  const exportedKey = await crypto.subtle.exportKey('raw', key);
-  const keyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
-  const ivBase64 = btoa(String.fromCharCode(...iv));
-
-  return {
-    encryptedBlob: new Blob([encryptedBuffer]),
-    encryptionDetails: { key: keyBase64, iv: ivBase64 },
-  };
-}
-
-export async function decryptFile(encryptedBuffer: ArrayBuffer, details: EncryptionDetails): Promise<Blob> {
-  const keyBuffer = Uint8Array.from(atob(details.key), (c) => c.charCodeAt(0));
-  const iv = Uint8Array.from(atob(details.iv), (c) => c.charCodeAt(0));
-
-  const key = await crypto.subtle.importKey(
+  const fek = await crypto.subtle.importKey(
     'raw',
-    keyBuffer,
+    fekBuffer,
     'AES-GCM',
     true,
     ['decrypt']
   );
 
+  // 2. Decrypt File Data using FEK
   const decryptedBuffer = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: iv },
-    key,
+    { name: 'AES-GCM', iv: fileIV },
+    fek,
     encryptedBuffer
   );
 
