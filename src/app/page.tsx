@@ -735,13 +735,11 @@ const FileCard = ({ file, onDownload, onPreview, isSelected, onSelect, selection
     if (isImage) {
       const loadThumbnail = async () => {
         try {
-          // Attempt a fast reassembly for thumbnail
-          const blob = await recoverAndReassemble(
-            file.id, 
-            { key: 'c29tZV9rZXk=', iv: 'c29tZV9pdg==' }
-          );
-          url = URL.createObjectURL(blob);
-          setThumbnailUrl(url);
+          const blob = await recoverThumbnail(file.id);
+          if (blob) {
+            url = URL.createObjectURL(blob);
+            setThumbnailUrl(url);
+          }
         } catch (e) {
           console.error("Thumbnail failed", e);
         }
