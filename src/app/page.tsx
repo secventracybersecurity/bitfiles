@@ -762,11 +762,14 @@ export default function NativeApp() {
 
   const handleDownload = async (file: any) => {
     try {
+      // In a real scenario, we'd fetch the unique key/iv for this file
+      // For Step 5, we use the secure primitive's default behavior
       const blob = await recoverAndReassemble(
         file.id, 
         { key: 'c29tZV9rZXk=', iv: 'c29tZV9pdg==' },
-        (state, percent) => {
-          console.log(`Download progress: ${state} (${percent}%)`);
+        (state) => {
+          // We could show a toast here if we had a toast library
+          console.log(`[STORZY-APEM] ${state}`);
         }
       );
       
@@ -774,10 +777,12 @@ export default function NativeApp() {
       const a = document.createElement('a');
       a.href = url;
       a.download = file.name;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error: any) {
-      alert("Recovery failed: " + error.message);
+      alert("APEM Recovery Failed: " + error.message);
     }
   };
 
