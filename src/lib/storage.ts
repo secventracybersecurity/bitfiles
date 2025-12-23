@@ -170,49 +170,53 @@ export async function recoverThumbnail(fileId: string): Promise<Blob | null> {
  */
 export async function recoverAndReassemble(
   fileId: string, 
-  details: EncryptionDetails,
+  masterKey: CryptoKey,
   onProgress?: (state: string, percent: number) => void
 ): Promise<Blob> {
   onProgress?.("Re-proving data survival mathematically...", 10);
 
-  // 1. Fetch shard metadata and reconstruct APEM Manifest
-  const { data: shards, error } = await supabase
+  // 1. Fetch shard metadata and file encryption metadata
+  const { data: fileMeta, error: fileError } = await supabase
+    .from('files')
+    .select('*')
+    .eq('id', fileId)
+    .single();
+
+  if (fileError || !fileMeta) throw new Error('File metadata not found');
+
+  const { data: shards, error: shardError } = await supabase
     .from('shards')
     .select('*, nodes(*)')
     .eq('file_id', fileId)
     .order('shard_index', { ascending: true });
 
-  if (error) throw error;
+  if (shardError) throw shardError;
   if (!shards || shards.length === 0) throw new Error('Recovery manifest not found');
 
-    // Build simulated APEM Manifest from shard/node data
-    const manifest: APEMManifest = {
-      fileId,
-      targetRecoveryProbability: 0.99999,
-      nodeReliabilitySnapshot: shards.reduce((acc, s) => ({ ...acc, [s.nodes.id]: s.nodes.reliability_score || 0.99 }), {}),
-      shardWeights: shards.reduce((acc, s, i) => ({ ...acc, [i]: s.is_parity ? 0.95 : 1.0 }), {}),
-      minimumRequiredWeight: Math.max(1, Math.floor(shards.filter(s => !s.is_parity).length * 0.8)),
-      creationTimestamp: Date.now()
-    };
-
+  // Build manifest for APEM
+  const manifest: APEMManifest = {
+    fileId,
+    targetRecoveryProbability: 0.99999,
+    nodeReliabilitySnapshot: shards.reduce((acc, s) => ({ ...acc, [s.nodes.id]: s.nodes.reliability_score || 0.99 }), {}),
+    shardWeights: shards.reduce((acc, s, i) => ({ ...acc, [i]: s.is_parity ? 0.95 : 1.0 }), {}),
+    minimumRequiredWeight: Math.max(1, Math.floor(shards.filter(s => !s.is_parity).length * 0.8)),
+    creationTimestamp: Date.now()
+  };
 
   onProgress?.("Retrieving distributed shards...", 30);
 
-  // 2. Parallel Shard Fetching with Retry Logic
+  // 2. Parallel Shard Fetching
   const fetchedShards: (Blob | null)[] = await Promise.all(
     shards.map(async (shard, idx) => {
       let attempts = 0;
       const maxAttempts = 2;
-      
       while (attempts < maxAttempts) {
         try {
           const res = await fetch(`/api/node/${shard.node_id}/download?fileId=${fileId}&chunkIndex=${shard.shard_index}`);
           if (!res.ok) throw new Error(`Node ${shard.node_id} returned ${res.status}`);
-          
           return await res.blob();
         } catch (err) {
           attempts++;
-          console.warn(`Retry ${attempts}/${maxAttempts} for shard ${idx} on node ${shard.node_id}`);
           if (attempts >= maxAttempts) return null;
           await new Promise(r => setTimeout(r, 500));
         }
@@ -224,7 +228,6 @@ export async function recoverAndReassemble(
   // Check mathematical recoverability
   const availableIndices = fetchedShards.map((s, i) => s !== null ? i : -1).filter(i => i !== -1);
   const p = calculateRecoveryProbability(availableIndices, manifest);
-  
   if (p < 0.5 && availableIndices.length < manifest.minimumRequiredWeight) {
     throw new Error(`Critical Recovery Failure: Probability ${p.toFixed(6)} below survival threshold.`);
   }
@@ -237,8 +240,7 @@ export async function recoverAndReassemble(
   const parityBlob = parityIdx !== -1 ? fetchedShards[parityIdx] : null;
 
   for (let i = 0; i < shards.length; i++) {
-    if (shards[i].is_parity) continue; // Skip parity in final reassembly
-
+    if (shards[i].is_parity) continue;
     if (fetchedShards[i] === null) {
       if (parityBlob) {
         onProgress?.(`Recovering missing shard ${i}...`, 70 + (i * 2));
@@ -255,18 +257,21 @@ export async function recoverAndReassemble(
   onProgress?.("Deciphering reassembled stream...", 90);
 
   // 4. Reassembly & Decryption
-  const dataShards = completeShards.slice(0, shards.filter(s => !s.is_parity).length);
-  const combinedBuffer = await new Blob(dataShards).arrayBuffer();
+  const combinedBuffer = await new Blob(completeShards).arrayBuffer();
   
+  const encryptionDetails: EncryptionDetails = {
+    encryptedFEK: fileMeta.encrypted_fek,
+    fekIV: fileMeta.fek_iv,
+    fileIV: fileMeta.file_iv
+  };
+
   try {
-    // Attempt real decryption with provided keys
-    const decryptedBlob = await decryptFile(combinedBuffer, details);
+    const decryptedBlob = await decryptFile(combinedBuffer, encryptionDetails, masterKey);
     onProgress?.("Data integrity verified", 100);
     return decryptedBlob;
   } catch (err) {
-    // In production, this would fail if integrity is compromised
-    // For the Ramanujan primitive, we return the reassembled stream with a warning if it's a test file
-    console.warn("Decryption failed, returning reassembled stream for verification", err);
-    return new Blob([combinedBuffer], { type: shards[0].mime_type || 'application/octet-stream' });
+    console.error("Decryption failed", err);
+    throw new Error("Failed to decrypt file: Invalid key or corrupted data.");
   }
 }
+
