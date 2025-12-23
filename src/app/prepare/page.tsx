@@ -3,7 +3,7 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Shield, 
+  Shield as ShieldIcon, 
   Layers, 
   Fingerprint, 
   CheckCircle2, 
@@ -22,7 +22,7 @@ const STATES = [
 ];
 
 const ICONS = [
-  Shield,
+  ShieldIcon,
   Layers,
   Fingerprint,
   CheckCircle2
@@ -42,10 +42,8 @@ export default function ChunkPreparationPage() {
 
     try {
       // Step 1: Client-side encryption (Never decrypt on server)
-      const { encryptedChunks, encryptionDetails } = await encryptFile(selectedFile);
+      const { encryptedChunks } = await encryptFile(selectedFile);
       
-      // Combine chunks back for the backend to handle deterministic chunking as a single stream
-      // In a real optimized system, we'd stream this directly.
       const encryptedBlob = new Blob(encryptedChunks);
       
       // Step 2: Transition to splitting
@@ -93,7 +91,7 @@ export default function ChunkPreparationPage() {
           {/* Header */}
             <div className="text-center space-y-4">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">
-                <Shield size={12} strokeWidth={3} />
+                <ShieldIcon size={12} strokeWidth={3} />
                 Zero-Knowledge Pipeline
               </div>
             <h1 className="text-4xl font-black text-[#0F172A] tracking-tight leading-none">
