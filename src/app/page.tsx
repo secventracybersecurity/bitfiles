@@ -1040,6 +1040,26 @@ export default function NativeApp() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-white border border-black/[0.03] rounded-xl p-1 shadow-sm mr-2">
+                    <button 
+                      onClick={() => setLayout("grid")}
+                      className={cn(
+                        "p-1.5 rounded-lg transition-all",
+                        layout === "grid" ? "bg-slate-100 text-[#0F172A]" : "text-[#94A3B8] hover:text-[#0F172A]"
+                      )}
+                    >
+                      <LayoutGrid size={16} />
+                    </button>
+                    <button 
+                      onClick={() => setLayout("list")}
+                      className={cn(
+                        "p-1.5 rounded-lg transition-all",
+                        layout === "list" ? "bg-slate-100 text-[#0F172A]" : "text-[#94A3B8] hover:text-[#0F172A]"
+                      )}
+                    >
+                      <List size={16} />
+                    </button>
+                  </div>
                   <select 
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as any)}
@@ -1052,29 +1072,44 @@ export default function NativeApp() {
                 </div>
               </div>
 
-              {/* Files List */}
-              <div className="bg-white rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)] p-6 divide-y divide-black/[0.03] min-h-[200px]">
-                {filteredFiles.length > 0 ? (
-                  filteredFiles.map(file => (
-                    <FileRow 
-                      key={file.id} 
-                      file={file} 
-                      onDownload={handleDownload} 
-                      onPreview={setPreviewFile}
-                      isSelected={selectedIds.includes(file.id)}
-                      onSelect={toggleSelection}
-                      selectionMode={selectedIds.length > 0}
-                    />
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
-                      <FileText size={32} />
-                    </div>
-                    <p className="text-sm font-bold text-[#64748B]">No files uploaded yet</p>
-                  </div>
-                )}
-              </div>
+              {/* Files Rendering */}
+              {layout === "grid" ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 min-h-[200px]">
+                  {filteredFiles.length > 0 ? (
+                    filteredFiles.map(file => (
+                      <FileCard
+                        key={file.id} 
+                        file={file} 
+                        onDownload={handleDownload} 
+                        onPreview={setPreviewFile}
+                        isSelected={selectedIds.includes(file.id)}
+                        onSelect={toggleSelection}
+                        selectionMode={selectedIds.length > 0}
+                      />
+                    ))
+                  ) : (
+                    <EmptyState />
+                  )}
+                </div>
+              ) : (
+                <div className="bg-white rounded-[2.5rem] border border-black/[0.02] shadow-[0_10px_40px_rgba(0,0,0,0.02)] p-6 divide-y divide-black/[0.03] min-h-[200px]">
+                  {filteredFiles.length > 0 ? (
+                    filteredFiles.map(file => (
+                      <FileRow 
+                        key={file.id} 
+                        file={file} 
+                        onDownload={handleDownload} 
+                        onPreview={setPreviewFile}
+                        isSelected={selectedIds.includes(file.id)}
+                        onSelect={toggleSelection}
+                        selectionMode={selectedIds.length > 0}
+                      />
+                    ))
+                  ) : (
+                    <EmptyState />
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Floating Upload Button */}
