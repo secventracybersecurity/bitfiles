@@ -13,6 +13,8 @@ interface ShellProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onDashboardClick?: () => void;
+  user?: any;
+  profile?: any;
 }
 
 const tabs = [
@@ -20,41 +22,46 @@ const tabs = [
   { id: "node", label: "Earn", icon: Wallet },
 ];
 
-export function Shell({ children, activeTab, setActiveTab, onDashboardClick }: ShellProps) {
+export function Shell({ children, activeTab, setActiveTab, onDashboardClick, user: propUser, profile: propProfile }: ShellProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [profileOpen, setProfileOpen] = React.useState(false);
-  const [user, setUser] = React.useState<any>(null);
-  const [profile, setProfile] = React.useState<any>(null);
+  const [internalUser, setInternalUser] = React.useState<any>(null);
+  const [internalProfile, setInternalProfile] = React.useState<any>(null);
   const router = useRouter();
   const supabase = createClient();
 
+  const user = propUser || internalUser;
+  const profile = propProfile || internalProfile;
+
   React.useEffect(() => {
+    if (propUser && propProfile) return;
+
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      setInternalUser(session?.user ?? null);
       if (session?.user) {
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
-        setProfile(profileData);
+        setInternalProfile(profileData);
       }
     };
 
     getSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      setInternalUser(session?.user ?? null);
       if (!session) {
-        setProfile(null);
+        setInternalProfile(null);
       } else {
         getSession();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [propUser, propProfile]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
